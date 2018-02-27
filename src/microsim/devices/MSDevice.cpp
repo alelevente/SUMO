@@ -40,6 +40,7 @@
 #include "MSDevice_Battery.h"
 #include "MSDevice_SSM.h"
 #include "MSDevice_Bluelight.h"
+#include "MSDevice_Messenger.h"
 
 
 // ===========================================================================
@@ -64,6 +65,7 @@ MSDevice::insertOptions(OptionsCont& oc) {
     MSDevice_Battery::insertOptions(oc);
     MSDevice_SSM::insertOptions(oc);
     MSDevice_Bluelight::insertOptions(oc);
+    MSDevice_Messenger::insertOptions(oc);
 }
 
 
@@ -87,6 +89,7 @@ MSDevice::buildVehicleDevices(SUMOVehicle& v, std::vector<MSDevice*>& into) {
     MSDevice_Battery::buildVehicleDevices(v, into);
     MSDevice_SSM::buildVehicleDevices(v, into);
     MSDevice_Bluelight::buildVehicleDevices(v, into);
+    MSDevice_Messenger::buildVehicleDevices(v, into);
 }
 
 void
