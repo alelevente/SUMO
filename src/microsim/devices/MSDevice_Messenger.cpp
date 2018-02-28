@@ -37,6 +37,7 @@
 #include "MSDevice_Tripinfo.h"
 #include "MSDevice_Messenger.h"
 #include "Messages/helper.h"
+#include <microsim/MSVehicleControl.h>
 
 #ifndef debug
 #define debug
@@ -141,7 +142,7 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
     if (!done && isLeader && helper!=NULL) {
         std::string *str = new std::string("Szia!");
         Message *message = new Message(&veh, helper->partner, str);
-        sendUnicastMessage(message);
+        sendBroadcastMessage(message);
         done = true;
         delete str;
         delete message;
@@ -204,6 +205,8 @@ MSDevice_Messenger::setParameter(const std::string& key, const std::string& valu
     }
 }
 
+
+//todo: this will be a proxy
 void MSDevice_Messenger::receiveMessage(Message *message) {
     std::string str = *((std::string*) message->getContent());
     std::cout << "Message received: " << str << std::endl;
@@ -216,6 +219,20 @@ void MSDevice_Messenger::sendUnicastMessage(Message *message) {
     if (otherDevice != 0) {
         otherDevice -> receiveMessage(message);
     } else throw "Not a smart vehicle!";
+}
+
+void MSDevice_Messenger::sendBroadcastMessage(Message *message) {
+    MSVehicleControl& vc = MSNet::getInstance()->getVehicleControl();
+    MSVehicleControl::constVehIt begin = vc.loadedVehBegin();
+    MSVehicleControl::constVehIt end = vc.loadedVehEnd();
+
+    for (MSVehicleControl::constVehIt i = begin; i!=end; ++i){
+        const MSVehicle* veh = static_cast<const MSVehicle*>((*i).second);
+        MSDevice_Messenger* otherDevice = static_cast<MSDevice_Messenger*>(veh->getDevice(typeid(MSDevice_Messenger)));
+        if (otherDevice != 0) {
+            otherDevice -> receiveMessage(message);
+        }
+    }
 }
 
 
