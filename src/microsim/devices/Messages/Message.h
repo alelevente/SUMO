@@ -5,6 +5,8 @@
 #ifndef SUMO_MESSAGE_H
 #define SUMO_MESSAGE_H
 
+#include <string>
+
 // ===========================================================================
 // class declarations
 // ===========================================================================
@@ -15,20 +17,23 @@ class SUMOVehicle;
 // ========================
 class Message{
 public:
-    Message(SUMOVehicle* sender, SUMOVehicle* receiver, void* content);
+    Message();
+    Message(SUMOVehicle* sender, SUMOVehicle* receiver, std::string* content);
     ~Message();
 
     void* getContent();
-    void setContent(void* content);
+    virtual void setContent(std::string* content);
     SUMOVehicle* getSender() const;
     SUMOVehicle* getReceiver();
     void setReceiver(SUMOVehicle* receiver);
+    virtual void processMessage() = 0;
 
 
-private:
+protected:
     SUMOVehicle* sender;
     SUMOVehicle* receiver;
-    void* content;
+private:
+    std::string* content;
 };
 
 

@@ -25,7 +25,7 @@ set(microsim_devices_STAT_SRCS
         MSDevice_Bluelight.h
         MSDevice_Messenger.cpp
         MSDevice_Messenger.h
-        Messages/Message.h Messages/Message.cpp Messages/helper.h Messages/helper.cpp)
+        Messages/Message.h Messages/Message.cpp Messages/helper.h Messages/helper.cpp Messages/GroupMessages.h Messages/GroupMessages.cpp)
 
 add_library(microsim_devices STATIC ${microsim_devices_STAT_SRCS})
 set_property(TARGET microsim_devices PROPERTY PROJECT_LABEL "z_microsim_devices")

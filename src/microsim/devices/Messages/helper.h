@@ -5,6 +5,8 @@
 #ifndef SUMO_HELPER_H
 #define SUMO_HELPER_H
 
+#include <microsim/devices/MSDevice_Messenger.h>
+
 #ifndef debug
 #define debug
 #endif
@@ -18,7 +20,11 @@ public:
     ~MessagesHelper();
 
     SUMOVehicle *partner;
+
+
 #endif
 };
+
+MSDevice_Messenger* getMessengerDeviceFromVehicle(SUMOVehicle *vehicle);
 
 #endif //SUMO_HELPER_H

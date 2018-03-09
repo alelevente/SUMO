@@ -31,6 +31,7 @@
 #include "MSDevice.h"
 #include <utils/common/SUMOTime.h>
 #include <microsim/devices/Messages/Message.h>
+#include <microsim/devices/Messages/GroupMessages.h>
 
 
 // ===========================================================================
@@ -137,11 +138,9 @@ public:
      */
     void generateOutput() const;
 
-    void sendUnicastMessage(Message* message);
     void sendGroupcastMessage(Message* message);
     void sendBroadcastMessage(Message* message);
 
-    void receiveMessage(Message* message);
 
 
 private:
@@ -152,7 +151,6 @@ private:
      */
     MSDevice_Messenger(SUMOVehicle& holder, const std::string& id, double customValue1,
                      double customValue2, double customValue3);
-
 
 
 private:
@@ -167,9 +165,34 @@ private:
     /// @brief a value which is initialised based on a vType parameter
     double myCustomValue3;
 
-    bool isLeader = false;
+    bool isLeader = true;
+public:
+    bool isIsLeader() const;
 
+    void setIsLeader(bool isLeader);
 
+    SUMOVehicle *getLeader() const;
+
+    void setLeader(SUMOVehicle *leader);
+
+    const libsumo::TraCIColor &getColor() const;
+
+    void setColor(const libsumo::TraCIColor &color);
+
+    void addVehicleToGroup (SUMOVehicle* vehicle);
+    void newGroup (std::vector<SUMOVehicle*> *group);
+    SUMOVehicle* getVehicleOfGroup (int pos);
+    void removeVehicleFromGroup (SUMOVehicle* vehicle);
+    void removeFirstVehicleFromGroup();
+
+private:
+    SUMOVehicle* leader;
+
+    libsumo::TraCIColor color;
+
+private:
+public:
+    const std::vector<SUMOVehicle *> &getGroup() const;
 
 private:
     /// @brief Invalidated copy constructor.
@@ -178,7 +201,7 @@ private:
     /// @brief Invalidated assignment operator.
     MSDevice_Messenger operator=(const MSDevice_Messenger&);
 
-
+    std::vector<SUMOVehicle*> group;
 };
 
 

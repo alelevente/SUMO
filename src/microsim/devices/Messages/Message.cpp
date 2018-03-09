@@ -3,8 +3,9 @@
 //
 
 #include "Message.h"
+#include <string>
 
-Message::Message(SUMOVehicle *sender, SUMOVehicle *receiver, void* content):
+Message::Message(SUMOVehicle *sender, SUMOVehicle *receiver, std::string* content):
     sender(sender),
     receiver(receiver),
     content(content)
@@ -17,7 +18,7 @@ void* Message::getContent() {
     return content;
 }
 
-void Message::setContent(void* content) {
+void Message::setContent(std::string* content) {
     this->content = content;
 }
 

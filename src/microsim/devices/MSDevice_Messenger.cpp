@@ -38,9 +38,14 @@
 #include "MSDevice_Messenger.h"
 #include "Messages/helper.h"
 #include <microsim/MSVehicleControl.h>
+#include <guisim/GUIBaseVehicle.h>
+#include "Messages/GroupMessages.h"
+#include "libsumo/Vehicle.h"
+#include <algorithm>
+#include "Messages/helper.h"
 
 #ifndef debug
-#define debug
+
 #endif
 
 #ifdef debug
@@ -110,8 +115,11 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
     MSDevice(holder, id),
     myCustomValue1(customValue1),
     myCustomValue2(customValue2),
-    myCustomValue3(customValue3) {
+    myCustomValue3(customValue3),
+    leader(&holder)
+{
     std::cout << "initialized device '" << id << "' with myCustomValue1=" << myCustomValue1 << ", myCustomValue2=" << myCustomValue2 << ", myCustomValue3=" << myCustomValue3 << "\n";
+    //setIsLeader(true);
 }
 
 
@@ -130,6 +138,19 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
             helper->partner = &veh;
         }
     }
+
+    MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
+    std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
+    double tavolsag = (double)vech.second;
+
+    MSVehicle* other = const_cast<MSVehicle*>(vech.first);
+    if (isLeader && tavolsag>0 && tavolsag<35) {
+        JoinGroupMessage* joinMessage = new JoinGroupMessage(&veh, other, &veh);
+        joinMessage -> processMessage();
+        delete joinMessage;
+    } else
+
+
     //std::cout << "device '" << getID() << "' notifyMove: newSpeed=" << newSpeed << "\n";
     // check whether another device is present on the vehicle:
     /*MSDevice_Tripinfo* otherDevice = static_cast<MSDevice_Tripinfo*>(veh.getDevice(typeid(MSDevice_Tripinfo)));
@@ -141,11 +162,11 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
 #ifdef debug
     if (!done && isLeader && helper!=NULL) {
         std::string *str = new std::string("Szia!");
-        Message *message = new Message(&veh, helper->partner, str);
-        sendBroadcastMessage(message);
+       // Message *message = new Message(&veh, helper->partner, str);
+       // sendBroadcastMessage(message);
         done = true;
         delete str;
-        delete message;
+       // delete message;
     }
 #endif
     return true; // keep the device
@@ -162,6 +183,9 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
 bool
 MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveReminder::Notification reason, const MSLane* /* enteredLane */) {
     //std::cout << "device '" << getID() << "' notifyLeave: reason=" << reason << " currentEdge=" << veh.getEdge()->getID() << "\n";
+    LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
+    message -> processMessage();
+    setIsLeader(true);
     return true; // keep the device
 }
 
@@ -206,20 +230,6 @@ MSDevice_Messenger::setParameter(const std::string& key, const std::string& valu
 }
 
 
-//todo: this will be a proxy
-void MSDevice_Messenger::receiveMessage(Message *message) {
-    std::string str = *((std::string*) message->getContent());
-    std::cout << "Message received: " << str << std::endl;
-}
-
-void MSDevice_Messenger::sendUnicastMessage(Message *message) {
-    SUMOVehicle& veh = *(message->getReceiver());
-
-    MSDevice_Messenger* otherDevice = static_cast<MSDevice_Messenger*>(veh.getDevice(typeid(MSDevice_Messenger)));
-    if (otherDevice != 0) {
-        otherDevice -> receiveMessage(message);
-    } else throw "Not a smart vehicle!";
-}
 
 void MSDevice_Messenger::sendBroadcastMessage(Message *message) {
     MSVehicleControl& vc = MSNet::getInstance()->getVehicleControl();
@@ -228,11 +238,77 @@ void MSDevice_Messenger::sendBroadcastMessage(Message *message) {
 
     for (MSVehicleControl::constVehIt i = begin; i!=end; ++i){
         const MSVehicle* veh = static_cast<const MSVehicle*>((*i).second);
-        MSDevice_Messenger* otherDevice = static_cast<MSDevice_Messenger*>(veh->getDevice(typeid(MSDevice_Messenger)));
-        if (otherDevice != 0) {
-            otherDevice -> receiveMessage(message);
-        }
+        MSVehicle* myVeh = const_cast<MSVehicle*>(veh);
+        message->setReceiver(myVeh);
+        message->processMessage();
     }
+}
+
+void MSDevice_Messenger::sendGroupcastMessage(Message *message) {
+    MSDevice_Messenger* messenger;
+    if (!leader) throw "Cannot send groupcast message, since it is not a leader.";
+    for (int i=0; i < group.size(); ++i){
+        //messenger = getMessengerDeviceFromVehicle(group.at(i));
+        message->setReceiver(group.at(i));
+        message->processMessage();
+    }
+}
+
+bool MSDevice_Messenger::isIsLeader() const {
+    return isLeader;
+}
+
+void MSDevice_Messenger::setIsLeader(bool isLeader) {
+    MSDevice_Messenger::isLeader = isLeader;
+    libsumo::TraCIColor color;
+    color.a = 255;
+    color.r = 255;
+    color.g = 0;
+    color.b = 0;
+    libsumo::Vehicle::setColor(this->getHolder().getID(), color);
+}
+
+SUMOVehicle *MSDevice_Messenger::getLeader() const {
+    return leader;
+}
+
+void MSDevice_Messenger::setLeader(SUMOVehicle *leader) {
+    MSDevice_Messenger::leader = leader;
+}
+
+const libsumo::TraCIColor &MSDevice_Messenger::getColor() const {
+    return color;
+}
+
+void MSDevice_Messenger::setColor(const libsumo::TraCIColor &color) {
+    MSDevice_Messenger::color = color;
+}
+
+void MSDevice_Messenger::addVehicleToGroup(SUMOVehicle *vehicle) {
+    group.push_back(vehicle);
+}
+
+void MSDevice_Messenger::removeVehicleFromGroup(SUMOVehicle *vehicle) {
+    std::vector<SUMOVehicle*>::iterator it = find(group.begin(), group.end(), vehicle);
+    if (it != group.end()){
+        group.erase(it);
+    }
+}
+
+void MSDevice_Messenger::removeFirstVehicleFromGroup() {
+    group.erase(group.begin());
+}
+
+SUMOVehicle *MSDevice_Messenger::getVehicleOfGroup(int pos) {
+    return group.size()>0 ? group.at(pos) : NULL;
+}
+
+const std::vector<SUMOVehicle *> &MSDevice_Messenger::getGroup() const {
+    return group;
+}
+
+void MSDevice_Messenger::newGroup(std::vector<SUMOVehicle *> *const group) {
+    this->group = *group;
 }
 
 
