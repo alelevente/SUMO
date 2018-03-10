@@ -890,7 +890,9 @@ enum SumoXMLNodeType {
     NODETYPE_NOJUNCTION,
     NODETYPE_INTERNAL,
     NODETYPE_DEAD_END,
-    NODETYPE_DEAD_END_DEPRECATED
+    NODETYPE_DEAD_END_DEPRECATED,
+    NODETYPE_SMART_MARKER_INPUT,        //for non-hierarchal smart input marker
+    NODETYPE_SMART_MARKER_OUTPUT        //for non-hierarchal smart output marker
 };
 
 
