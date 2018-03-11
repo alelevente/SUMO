@@ -32,6 +32,7 @@
 #include <utils/common/SUMOTime.h>
 #include <microsim/devices/Messages/Message.h>
 #include <microsim/devices/Messages/GroupMessages.h>
+#include <microsim/devices/Markers/ExitMarker.h>
 
 
 // ===========================================================================
@@ -184,11 +185,14 @@ public:
     SUMOVehicle* getVehicleOfGroup (int pos);
     void removeVehicleFromGroup (SUMOVehicle* vehicle);
     void removeFirstVehicleFromGroup();
+    ExitMarker* getExitMarker();
+
 
 private:
     SUMOVehicle* leader;
-
     libsumo::TraCIColor color;
+    ExitMarker* exitMarker;
+
 
 private:
 public:

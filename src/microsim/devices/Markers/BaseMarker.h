@@ -23,6 +23,7 @@ public:
     BaseMarker(std::string markerID, const MSEdge* position const);
     ~BaseMarker();
 
-    virtual void onPassing(SUMOVehicle* who) = 0;
+    virtual void* onEnter(SUMOVehicle* who) = 0;
+    virtual void* onExit(SUMOVehicle* who) = 0;
 };
 #endif //SUMO_BASEMARKER_H

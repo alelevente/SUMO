@@ -25,7 +25,7 @@ public:
      */
 
     //todo: implement path
-    static SUMOVehicle* canJoin(SUMOVehicle* front, void* path);
+    static SUMOVehicle* canJoin(SUMOVehicle* who);
 };
 
 #endif //SUMO_GROUPMESSAGEHANDLER_H

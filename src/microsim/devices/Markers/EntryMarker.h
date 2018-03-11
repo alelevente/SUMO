@@ -6,13 +6,16 @@
 #define SUMO_ENTRYMARKER_H
 
 #include "BaseMarker.h"
+#include "ExitMarker.h"
 
 class EntryMarker: public BaseMarker{
 public:
     EntryMarker(std::string markerID, const MSEdge* position const);
     ~EntryMarker();
 
-    void onPassing(SUMOVehicle* who);
+    void* onEnter(SUMOVehicle* who);
+    void* onExit(SUMOVehicle* who);
+    std::vector<ExitMarker*> exitMarkers;
 };
 
 #endif //SUMO_ENTRYMARKER_H

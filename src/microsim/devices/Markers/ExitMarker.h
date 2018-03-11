@@ -12,7 +12,8 @@ public:
     ExitMarker(std::string markerID, const MSEdge* position const);
     ~ExitMarker();
 
-    void onPassing(SUMOVehicle* who);
+    void* onEnter(SUMOVehicle* who);
+    void* onExit(SUMOVehicle* who);
 };
 
 

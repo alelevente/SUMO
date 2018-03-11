@@ -42,7 +42,9 @@
 #include "Messages/GroupMessages.h"
 #include "libsumo/Vehicle.h"
 #include <algorithm>
+#include <microsim/devices/Messages/GroupMessageHandler.h>
 #include "Messages/helper.h"
+#include "Markers/MarkerSystem.h"
 
 #ifndef debug
 
@@ -131,14 +133,6 @@ bool
 MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
                              double /* newPos */, double newSpeed) {
 
-    if (veh.getID().compare("veh0")==0) isLeader = true;
-    if (veh.getID().compare("veh1")==0) {
-        if (helper==NULL) {
-            helper = new MessagesHelper;
-            helper->partner = &veh;
-        }
-    }
-
     MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
     std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
     double tavolsag = (double)vech.second;
@@ -176,6 +170,23 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
 bool
 MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification reason, const MSLane* /* enteredLane */) {
     //std::cout << "device '" << getID() << "' notifyEnter: reason=" << reason << " currentEdge=" << veh.getEdge()->getID() << "\n";
+
+    void* result = NULL;
+    if (MarkerSystem::isMarkerID(veh.getEdge()->getID())) {
+        result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onEnter(&veh);
+        //EntryMarker:
+        if (result!=NULL){
+            std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(result);
+            exitMarker = NULL;
+            for (auto i = exitMarkers->begin(); i!=exitMarkers->end(); ++i){
+                if (veh.getRoute().contains((*i)->getPosition())) exitMarker = (*i);
+            }
+            delete exitMarkers;
+
+            GroupMessageHandler::canJoin(&veh);
+        }
+    }
+
     return true; // keep the device
 }
 
@@ -311,6 +322,9 @@ void MSDevice_Messenger::newGroup(std::vector<SUMOVehicle *> *const group) {
     this->group = *group;
 }
 
+ExitMarker* MSDevice_Messenger::getExitMarker() {
+    return exitMarker;
+}
 
 /****************************************************************************/
 

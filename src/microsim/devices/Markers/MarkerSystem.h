@@ -7,17 +7,20 @@
 
 #include <vector>
 #include "BaseMarker.h"
+#include "ExitMarker.h"
 
 class MarkerSystem{
     MarkerSystem();
     ~MarkerSystem();
    // static MarkerSystem& singleton;
     std::map<std::string, BaseMarker*> markerMap;
+    std::vector<ExitMarker*> findExitMarkerstoEntry(const std::string& entryID);
 
 public:
     static MarkerSystem& getInstance();
     BaseMarker* findMarkerByID(const std::string& ID);
     static inline bool isMarkerID(const std::string& ID);
+
 };
 
 #endif //SUMO_MARKERSYSTEM_H
