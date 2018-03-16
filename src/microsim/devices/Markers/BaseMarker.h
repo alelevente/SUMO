@@ -17,10 +17,10 @@ class BaseMarker{
 
 public:
     MSEdge* getPosition();
-    void setPosition(const MSEdge* const);
+    void setPosition(MSEdge* posi);
     std::string getMarkerID();
 
-    BaseMarker(std::string markerID, const MSEdge* position const);
+    BaseMarker(std::string markerID, MSEdge* position );
     ~BaseMarker();
 
     virtual void* onEnter(SUMOVehicle* who) = 0;

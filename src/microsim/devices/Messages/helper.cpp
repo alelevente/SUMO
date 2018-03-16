@@ -10,6 +10,7 @@ MessagesHelper::MessagesHelper() {}
 MessagesHelper::~MessagesHelper() {}
 
 MSDevice_Messenger* getMessengerDeviceFromVehicle(SUMOVehicle *vehicle){
+    if (vehicle == NULL) return NULL;
     SUMOVehicle& veh = *(vehicle);
     return static_cast<MSDevice_Messenger*>(veh.getDevice(typeid(MSDevice_Messenger)));
 }

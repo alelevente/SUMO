@@ -10,7 +10,7 @@
 
 class EntryMarker: public BaseMarker{
 public:
-    EntryMarker(std::string markerID, const MSEdge* position const);
+    EntryMarker(std::string markerID, MSEdge* position);
     ~EntryMarker();
 
     void* onEnter(SUMOVehicle* who);

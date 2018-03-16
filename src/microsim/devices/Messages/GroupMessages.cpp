@@ -38,7 +38,7 @@ void JoinGroupMessage::setContent(SUMOVehicle *who) {
 }
 
 void JoinGroupMessage::processMessage() {
-    libsumo::TraCIColor* color = new libsumo::TraCIColor(libsumo::Vehicle::getColor(receiver->getID()));
+    /*libsumo::TraCIColor* color = new libsumo::TraCIColor(libsumo::Vehicle::getColor(receiver->getID()));
     WelcomeMessageContent* content = new WelcomeMessageContent();
     MSDevice_Messenger* otherDevice = getMessengerDeviceFromVehicle(receiver);
 
@@ -57,7 +57,7 @@ void JoinGroupMessage::processMessage() {
     welcomeMessage -> processMessage();
     delete color;
     delete content;
-    delete welcomeMessage;
+    delete welcomeMessage;*/
 }
 
 
@@ -69,13 +69,8 @@ GroupWelcomeMessage::GroupWelcomeMessage(SUMOVehicle *sender, SUMOVehicle *recei
 
 void GroupWelcomeMessage::processMessage(){
     MSDevice_Messenger* otherDevice = getMessengerDeviceFromVehicle(receiver);
-    MSDevice_Messenger* leaderDevice = getMessengerDeviceFromVehicle(content->leader);
-    otherDevice -> setColor(*(new libsumo::TraCIColor(*(content->color))));
-    otherDevice -> setIsLeader(false);
-
-    libsumo::Vehicle::setColor(receiver->getID(), otherDevice -> getColor());
-    otherDevice -> setLeader (content->leader);
-    leaderDevice -> addVehicleToGroup(receiver);
+    //MSDevice_Messenger* leaderDevice = getMessengerDeviceFromVehicle(content->leader);
+    otherDevice -> setGroupMemberData(*content->color, content->leader);
 }
 
 WelcomeMessageContent* GroupWelcomeMessage::getContent() {
@@ -91,7 +86,7 @@ LeaveGroupMessage::LeaveGroupMessage(SUMOVehicle *sender, SUMOVehicle *receiver,
 {}
 
 void LeaveGroupMessage::processMessage() {
-    MSDevice_Messenger* senderDevice = getMessengerDeviceFromVehicle(sender);
+    /*MSDevice_Messenger* senderDevice = getMessengerDeviceFromVehicle(sender);
     //MSDevice_Messenger* leaderDevice = getMessengerDeviceFromVehicle(sender->getL);
     if (senderDevice->isIsLeader()){
         SUMOVehicle* newLeader = senderDevice->getVehicleOfGroup(0);
@@ -117,7 +112,7 @@ void LeaveGroupMessage::processMessage() {
     } else {
         MSDevice_Messenger* leaderDevice = getMessengerDeviceFromVehicle(senderDevice->getLeader());
         leaderDevice->removeVehicleFromGroup(sender);
-    }
+    }*/
 }
 
 LeaveGroupMessage::~LeaveGroupMessage() {}
@@ -131,12 +126,12 @@ NewLeaderMessage::~NewLeaderMessage() {}
 
 void NewLeaderMessage::processMessage() {
     //Will it be a Leader?
-    MSDevice_Messenger* receiverDevice = getMessengerDeviceFromVehicle(receiver);
+    /*MSDevice_Messenger* receiverDevice = getMessengerDeviceFromVehicle(receiver);
     if (content->groupMembers!=NULL){
         receiverDevice -> setIsLeader(true);
         receiverDevice -> newGroup(content->groupMembers);
         receiverDevice -> setLeader(receiver);
     } else {
         receiverDevice -> setLeader(content->leader);
-    }
+    }*/
 }

@@ -7,31 +7,35 @@
 #include "ExitMarker.h"
 #include <microsim/MSEdgeControl.h>
 
-//MarkerSystem::singleton = NULL;
 
-static inline bool MarkerSystem::isMarkerID(const std::string& ID){
+
+inline bool MarkerSystem::isMarkerID(const std::string& ID){
     return ID.compare(0,6,"marker") == 0;
 }
 
 MarkerSystem::MarkerSystem(){
     //std::vector<std::string> edgeNames = MSNet::getInstance()->getEdgeControl().getEdgeNames();
     std::vector<MSEdge*> edges = MSNet::getInstance()->getEdgeControl().getEdges();
+    std::string str;
+    MSEdge* edge;
     for (auto i = edges.begin(); i != edges.end(); ++i){
         //if marker
-        if (isMarkerID((*i)->getID()){
+        if (isMarkerID((*i)->getID())){
             BaseMarker* newMarker = NULL;
-            if ((*i)->getID().compare(6, 5, "Entry") == 0) {
-                newMarker = new EntryMarker((*i)->getID(), (*i));
+            str = (*i)->getID();
+            edge = *i;
+            if (str.compare(6, 5, "Entry") == 0) {
+                newMarker = new EntryMarker(str, edge);
 
-            } else if ((*i)->getID().compare(6,4,"Exit") == 0) {
-                newMarker = new ExitMarker((*i)->getID(), (*i));
+            } else if (str.compare(6,4,"Exit") == 0) {
+                newMarker = new ExitMarker(str, edge);
             }
-            markerMap.insert(std::make_pair(*i, newMarker));
+            markerMap.insert(std::make_pair(str, newMarker));
         }
     }
 
     for (auto i=markerMap.begin(); i!=markerMap.end(); ++i){
-        if ((*i).first.compare(6,4,"Entry") == 0) {
+        if ((*i).first.compare(6,5,"Entry") == 0) {
             EntryMarker* entryMarker = static_cast<EntryMarker*>((*i).second);
             entryMarker->exitMarkers = findExitMarkerstoEntry((*i).first);
         }
@@ -48,12 +52,15 @@ BaseMarker* MarkerSystem::findMarkerByID(const std::string &ID) {
     return markerMap[ID];
 }
 
-static MarkerSystem& MarkerSystem::getInstance() {
-    static MarkerSystem markerSystem;
-    return markerSystem;
+MarkerSystem& MarkerSystem::getInstance() {
+    /*if (singleton==NULL) singleton = new MarkerSystem();
+    return *singleton;*/
+
+    static MarkerSystem ms;
+    return ms;
 }
 
-static inline std::string getJunctionName(const std::string& ID){
+inline std::string getJunctionName(const std::string& ID){
     std::string name;
     int i = 0;
     while (ID[i]!='_') ++i;
@@ -75,5 +82,6 @@ std::vector<ExitMarker*> MarkerSystem::findExitMarkerstoEntry(const std::string&
                 answer.push_back(static_cast<ExitMarker*>((*i).second));
         }
     }
+    return answer;
 }
 

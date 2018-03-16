@@ -6,6 +6,17 @@
 #include "EntryMarker.h"
 
 void* EntryMarker::onEnter(SUMOVehicle *who) {
-    std::vector<ExitMarker*> *answer = new std::vector<ExitMarker*> (exitMarkers);
-    return answer;
+    //std::vector<ExitMarker*> *answer = new std::vector<ExitMarker*> (exitMarkers);
+    return &exitMarkers;
 }
+
+void* EntryMarker::onExit(SUMOVehicle *who) {
+    return NULL;
+}
+
+EntryMarker::EntryMarker(std::string markerID, MSEdge *position):
+    BaseMarker(markerID, position)
+{
+}
+
+EntryMarker::~EntryMarker() {}

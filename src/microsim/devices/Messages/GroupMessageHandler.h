@@ -24,8 +24,8 @@ public:
      * @return A pointer to the group's leader if the group is good. Otherwise: NULL
      */
 
-    //todo: implement path
-    static SUMOVehicle* canJoin(SUMOVehicle* who);
+    static SUMOVehicle* Join(SUMOVehicle* who);
+    static void tryToLeave(SUMOVehicle* leader);
 };
 
 #endif //SUMO_GROUPMESSAGEHANDLER_H

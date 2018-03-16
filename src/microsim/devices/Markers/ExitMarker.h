@@ -9,7 +9,7 @@
 
 class ExitMarker: public BaseMarker{
 public:
-    ExitMarker(std::string markerID, const MSEdge* position const);
+    ExitMarker(std::string markerID, MSEdge* position);
     ~ExitMarker();
 
     void* onEnter(SUMOVehicle* who);

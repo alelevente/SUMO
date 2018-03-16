@@ -12,7 +12,9 @@
 class MarkerSystem{
     MarkerSystem();
     ~MarkerSystem();
-   // static MarkerSystem& singleton;
+    MarkerSystem(MarkerSystem const&);
+    void operator=(const MarkerSystem&);
+    //static MarkerSystem singleton;
     std::map<std::string, BaseMarker*> markerMap;
     std::vector<ExitMarker*> findExitMarkerstoEntry(const std::string& entryID);
 

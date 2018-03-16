@@ -34,7 +34,8 @@
 #include <microsim/devices/Messages/GroupMessages.h>
 #include <microsim/devices/Markers/ExitMarker.h>
 
-
+static const double MAX_DISTANCE=25;
+static const int MAX_GROUP_MEMBERS=15;
 // ===========================================================================
 // class declarations
 // ===========================================================================
@@ -52,6 +53,21 @@ class SUMOVehicle;
  *
  * @see MSDevice
  */
+
+struct VehData{
+    double maxAccel, maxDecel;
+    SUMOVehicle* vehicle;
+};
+
+struct GroupData{
+    int nMembers, nExited;
+    std::vector<VehData*> memberData;
+    SUMOVehicle* groupLeader;
+    libsumo::TraCIColor groupColor;
+    bool canJoin = false;
+    inline void clear();
+};
+
 class MSDevice_Messenger : public MSDevice {
 public:
     /** @brief Inserts MSDevice_Example-options
@@ -168,33 +184,27 @@ private:
 
     bool isLeader = true;
 public:
-    bool isIsLeader() const;
-
-    void setIsLeader(bool isLeader);
 
     SUMOVehicle *getLeader() const;
 
-    void setLeader(SUMOVehicle *leader);
-
-    const libsumo::TraCIColor &getColor() const;
-
-    void setColor(const libsumo::TraCIColor &color);
-
-    void addVehicleToGroup (SUMOVehicle* vehicle);
-    void newGroup (std::vector<SUMOVehicle*> *group);
+    void newGroup();
     SUMOVehicle* getVehicleOfGroup (int pos);
-    void removeVehicleFromGroup (SUMOVehicle* vehicle);
-    void removeFirstVehicleFromGroup();
     ExitMarker* getExitMarker();
 
+    bool isAbleToJoin (SUMOVehicle* who);
+    void joinNewMember(SUMOVehicle* who);
+    void setGroupMemberData(libsumo::TraCIColor color, SUMOVehicle* leader);
+    void notifyLeaved(SUMOVehicle* who);
+    void finishGroup();
 
 private:
-    SUMOVehicle* leader;
-    libsumo::TraCIColor color;
     ExitMarker* exitMarker;
-
+    GroupData groupData;
+    libsumo::TraCIColor* originalColor;
+    int flag;
 
 private:
+    void resetOriginalColor();
 public:
     const std::vector<SUMOVehicle *> &getGroup() const;
 
@@ -205,7 +215,6 @@ private:
     /// @brief Invalidated assignment operator.
     MSDevice_Messenger operator=(const MSDevice_Messenger&);
 
-    std::vector<SUMOVehicle*> group;
 };
 
 

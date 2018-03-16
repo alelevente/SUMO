@@ -43,6 +43,7 @@
 #include "libsumo/Vehicle.h"
 #include <algorithm>
 #include <microsim/devices/Messages/GroupMessageHandler.h>
+#include <libsumo/VehicleType.h>
 #include "Messages/helper.h"
 #include "Markers/MarkerSystem.h"
 
@@ -118,8 +119,12 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
     myCustomValue1(customValue1),
     myCustomValue2(customValue2),
     myCustomValue3(customValue3),
-    leader(&holder)
+    originalColor(NULL)
 {
+    //GUIBaseVehicle baseVehicle;
+    //originalColor = libsumo::VehicleType::getColor(holder.getID());
+    groupData.groupLeader = NULL;
+    flag = 0;
     std::cout << "initialized device '" << id << "' with myCustomValue1=" << myCustomValue1 << ", myCustomValue2=" << myCustomValue2 << ", myCustomValue3=" << myCustomValue3 << "\n";
     //setIsLeader(true);
 }
@@ -133,7 +138,7 @@ bool
 MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
                              double /* newPos */, double newSpeed) {
 
-    MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
+    /*MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
     std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
     double tavolsag = (double)vech.second;
 
@@ -142,7 +147,7 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
         JoinGroupMessage* joinMessage = new JoinGroupMessage(&veh, other, &veh);
         joinMessage -> processMessage();
         delete joinMessage;
-    } else
+    } else*/
 
 
     //std::cout << "device '" << getID() << "' notifyMove: newSpeed=" << newSpeed << "\n";
@@ -152,16 +157,27 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
         std::cout << "  veh '" << veh.getID() << " has device '" << otherDevice->getID() << "'\n";
     }*/
 
+    if (originalColor==NULL) {
+        originalColor = new libsumo::TraCIColor(libsumo::VehicleType::getColor(veh.getVehicleType().getID()));
+    }
+
+    if (flag>0){
+#ifdef debug
+        std::cout << veh.getEdge()->getID() << " helyen vagyok."<<std::endl;
+        MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
+        std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
+        if (vech.first!=NULL) {
+            std::cout << vech.first->getID() << " van elottem." <<std::endl;
+            flag=0;
+        }
+#endif
+        --flag;
+        GroupMessageHandler::Join(&veh);
+    }
+
 
 #ifdef debug
-    if (!done && isLeader && helper!=NULL) {
-        std::string *str = new std::string("Szia!");
-       // Message *message = new Message(&veh, helper->partner, str);
-       // sendBroadcastMessage(message);
-        done = true;
-        delete str;
-       // delete message;
-    }
+
 #endif
     return true; // keep the device
 }
@@ -175,15 +191,15 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
     if (MarkerSystem::isMarkerID(veh.getEdge()->getID())) {
         result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onEnter(&veh);
         //EntryMarker:
-        if (result!=NULL){
+        if (result!=NULL && groupData.groupLeader==NULL){
             std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(result);
             exitMarker = NULL;
             for (auto i = exitMarkers->begin(); i!=exitMarkers->end(); ++i){
                 if (veh.getRoute().contains((*i)->getPosition())) exitMarker = (*i);
             }
-            delete exitMarkers;
+            //delete exitMarkers;
 
-            GroupMessageHandler::canJoin(&veh);
+            flag = 5;//GroupMessageHandler::Join(&veh);
         }
     }
 
@@ -194,9 +210,19 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
 bool
 MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveReminder::Notification reason, const MSLane* /* enteredLane */) {
     //std::cout << "device '" << getID() << "' notifyLeave: reason=" << reason << " currentEdge=" << veh.getEdge()->getID() << "\n";
-    LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
+    /*LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
     message -> processMessage();
-    setIsLeader(true);
+    setIsLeader(true);*/
+
+    void* result = NULL;
+    if (MarkerSystem::isMarkerID(veh.getEdge()->getID())) {
+        result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onExit(&veh);
+        //ExitMarker:
+        if (result!=NULL && groupData.groupLeader!=NULL){
+            GroupMessageHandler::tryToLeave(groupData.groupLeader);
+        }
+    }
+
     return true; // keep the device
 }
 
@@ -257,73 +283,99 @@ void MSDevice_Messenger::sendBroadcastMessage(Message *message) {
 
 void MSDevice_Messenger::sendGroupcastMessage(Message *message) {
     MSDevice_Messenger* messenger;
-    if (!leader) throw "Cannot send groupcast message, since it is not a leader.";
-    for (int i=0; i < group.size(); ++i){
+    if (!(groupData.groupLeader!=&myHolder)) throw "Cannot send groupcast message, since it is not a leader.";
+    for (int i=0; i < groupData.nMembers; ++i){
         //messenger = getMessengerDeviceFromVehicle(group.at(i));
-        message->setReceiver(group.at(i));
+        message->setReceiver(groupData.memberData[i]->vehicle);
         message->processMessage();
     }
 }
 
-bool MSDevice_Messenger::isIsLeader() const {
-    return isLeader;
-}
-
-void MSDevice_Messenger::setIsLeader(bool isLeader) {
-    MSDevice_Messenger::isLeader = isLeader;
-    libsumo::TraCIColor color;
-    color.a = 255;
-    color.r = 255;
-    color.g = 0;
-    color.b = 0;
-    libsumo::Vehicle::setColor(this->getHolder().getID(), color);
-}
 
 SUMOVehicle *MSDevice_Messenger::getLeader() const {
-    return leader;
+    return groupData.groupLeader;
 }
 
-void MSDevice_Messenger::setLeader(SUMOVehicle *leader) {
-    MSDevice_Messenger::leader = leader;
-}
-
-const libsumo::TraCIColor &MSDevice_Messenger::getColor() const {
-    return color;
-}
-
-void MSDevice_Messenger::setColor(const libsumo::TraCIColor &color) {
-    MSDevice_Messenger::color = color;
-}
-
-void MSDevice_Messenger::addVehicleToGroup(SUMOVehicle *vehicle) {
-    group.push_back(vehicle);
-}
-
-void MSDevice_Messenger::removeVehicleFromGroup(SUMOVehicle *vehicle) {
-    std::vector<SUMOVehicle*>::iterator it = find(group.begin(), group.end(), vehicle);
-    if (it != group.end()){
-        group.erase(it);
-    }
-}
-
-void MSDevice_Messenger::removeFirstVehicleFromGroup() {
-    group.erase(group.begin());
-}
-
-SUMOVehicle *MSDevice_Messenger::getVehicleOfGroup(int pos) {
-    return group.size()>0 ? group.at(pos) : NULL;
-}
-
-const std::vector<SUMOVehicle *> &MSDevice_Messenger::getGroup() const {
-    return group;
-}
-
-void MSDevice_Messenger::newGroup(std::vector<SUMOVehicle *> *const group) {
-    this->group = *group;
-}
 
 ExitMarker* MSDevice_Messenger::getExitMarker() {
     return exitMarker;
+}
+
+bool MSDevice_Messenger::isAbleToJoin(SUMOVehicle *who) {
+    return (groupData.nMembers < MAX_GROUP_MEMBERS && groupData.canJoin);
+}
+
+void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
+    VehData* newMember = new VehData();
+    newMember->vehicle = who;
+    newMember->maxAccel = libsumo::VehicleType::getAccel(who->getVehicleType().getID());
+    newMember->maxDecel = libsumo::VehicleType::getDecel(who->getVehicleType().getID());
+
+    ++groupData.nMembers;
+    groupData.memberData.push_back(newMember);
+
+    WelcomeMessageContent* content = new WelcomeMessageContent();
+    content->leader = &myHolder;
+    content->color = &groupData.groupColor;
+    GroupWelcomeMessage* message = new GroupWelcomeMessage(&myHolder, who, content);
+    message->processMessage();
+    delete message;
+    delete content;
+}
+
+inline void GroupData::clear() {
+    nMembers = 0;
+    nExited = 0;
+
+    memberData.clear();
+    groupLeader = NULL;
+    canJoin = false;
+}
+
+void MSDevice_Messenger::newGroup() {
+    groupData.clear();
+    groupData.groupLeader = &myHolder;
+    groupData.canJoin = true;
+    flag = 0;
+
+    libsumo::TraCIColor color;
+    color.a = 255;
+    color.r = rand() % 256;
+    color.g = rand() % 256;
+    color.b = rand() % 256;
+    groupData.groupColor = color;
+    color.r -= 20;
+    color.g -= 20;
+    color.b -= 20;
+    libsumo::Vehicle::setColor(this->getHolder().getID(), color);
+}
+
+void MSDevice_Messenger::setGroupMemberData(libsumo::TraCIColor color, SUMOVehicle *leader) {
+    groupData.clear();
+    groupData.groupColor = color;
+    groupData.groupLeader = leader;
+    libsumo::Vehicle::setColor(myHolder.getID(),color);
+}
+
+void MSDevice_Messenger::notifyLeaved(SUMOVehicle *who) {
+    groupData.nExited++;
+    if (groupData.nExited > groupData.nMembers) finishGroup();
+}
+
+void MSDevice_Messenger::finishGroup() {
+    MSDevice_Messenger* other;
+    for (auto i = groupData.memberData.begin(); i!=groupData.memberData.end(); ++i){
+        other = getMessengerDeviceFromVehicle((*i)->vehicle);
+        other->groupData.clear();
+        other->resetOriginalColor();
+        delete *i;
+    }
+    groupData.clear();
+    resetOriginalColor();
+}
+
+void MSDevice_Messenger::resetOriginalColor() {
+    libsumo::Vehicle::setColor(myHolder.getID(),*originalColor);
 }
 
 /****************************************************************************/
