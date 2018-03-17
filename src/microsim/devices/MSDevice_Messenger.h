@@ -34,7 +34,7 @@
 #include <microsim/devices/Messages/GroupMessages.h>
 #include <microsim/devices/Markers/ExitMarker.h>
 
-static const double MAX_DISTANCE=25;
+static const double MAX_DISTANCE=100;
 static const int MAX_GROUP_MEMBERS=15;
 // ===========================================================================
 // class declarations
@@ -57,6 +57,7 @@ class SUMOVehicle;
 struct VehData{
     double maxAccel, maxDecel;
     SUMOVehicle* vehicle;
+    bool exited = false;
 };
 
 struct GroupData{
@@ -196,6 +197,7 @@ public:
     void setGroupMemberData(libsumo::TraCIColor color, SUMOVehicle* leader);
     void notifyLeaved(SUMOVehicle* who);
     void finishGroup();
+    void resetFlag();
 
 private:
     ExitMarker* exitMarker;

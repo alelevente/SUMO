@@ -6,8 +6,10 @@
 #include <microsim/devices/MSDevice_Messenger.h>
 #include <utils/vehicle/SUMOVehicle.h>
 
+#ifdef debug
 MessagesHelper::MessagesHelper() {}
 MessagesHelper::~MessagesHelper() {}
+#endif
 
 MSDevice_Messenger* getMessengerDeviceFromVehicle(SUMOVehicle *vehicle){
     if (vehicle == NULL) return NULL;

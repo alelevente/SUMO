@@ -9,7 +9,7 @@
 
 SUMOVehicle* GroupMessageHandler::Join(SUMOVehicle *who) {
     MSVehicle* myVech = static_cast<MSVehicle*>(who);
-    std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
+    std::pair< const MSVehicle *const, double > vech = myVech->getLeader(MAX_DISTANCE);
 
     MSVehicle* other = const_cast<MSVehicle*>(vech.first);
     //Going in the direction of the same ExitMarker?
@@ -20,13 +20,18 @@ SUMOVehicle* GroupMessageHandler::Join(SUMOVehicle *who) {
         //Good group?
         if (leader->isAbleToJoin(who)) {
             leader->joinNewMember(who);
+            follower->resetFlag();
         }
         else {
             follower->newGroup();
+            follower->resetFlag();
         }
-    } else follower->newGroup();
+    } else {
+        follower->newGroup();
+        follower->resetFlag();
+    }
 }
 
-void GroupMessageHandler::tryToLeave(SUMOVehicle *leader) {
-    getMessengerDeviceFromVehicle(leader)->notifyLeaved(NULL);
+void GroupMessageHandler::tryToLeave(SUMOVehicle *leader, SUMOVehicle *who) {
+    getMessengerDeviceFromVehicle(leader)->notifyLeaved(who);
 }

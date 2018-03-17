@@ -25,7 +25,7 @@ public:
      */
 
     static SUMOVehicle* Join(SUMOVehicle* who);
-    static void tryToLeave(SUMOVehicle* leader);
+    static void tryToLeave(SUMOVehicle *leader, SUMOVehicle *who);
 };
 
 #endif //SUMO_GROUPMESSAGEHANDLER_H

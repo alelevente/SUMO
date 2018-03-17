@@ -45,6 +45,7 @@
 #include "MSLCM_DK2008.h"
 #include "MSLCM_LC2013.h"
 #include "MSLCM_SL2015.h"
+#include "MSLCM_Smart.h"
 
 /* -------------------------------------------------------------------------
  * static members
@@ -80,6 +81,8 @@ MSAbstractLaneChangeModel::build(LaneChangeModel lcm, MSVehicle& v) {
             return new MSLCM_LC2013(v);
         case LCM_SL2015:
             return new MSLCM_SL2015(v);
+        case LCM_SMART:
+            return new MSLCM_Smart(v);
         case LCM_DEFAULT:
             if (MSGlobals::gLateralResolution <= 0) {
                 return new MSLCM_LC2013(v);

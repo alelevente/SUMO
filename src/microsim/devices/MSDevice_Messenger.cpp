@@ -44,16 +44,21 @@
 #include <algorithm>
 #include <microsim/devices/Messages/GroupMessageHandler.h>
 #include <libsumo/VehicleType.h>
+#include <microsim/lcmodels/MSLCM_Smart.h>
 #include "Messages/helper.h"
 #include "Markers/MarkerSystem.h"
 
 #ifndef debug
-
+#define debug
 #endif
 
 #ifdef debug
 MessagesHelper* helper= NULL;
 bool done = false;
+#endif
+
+#ifndef GROUP_DEBUG
+#define GROUP_DEBUG
 #endif
 
 // ===========================================================================
@@ -87,7 +92,7 @@ MSDevice_Messenger::buildVehicleDevices(SUMOVehicle& v, std::vector<MSDevice*>& 
             }
 
         } else {
-            std::cout << "vehicle '" << v.getID() << "' does not supply vehicle parameter 'messenger'. Using default of " << customParameter2 << "\n";
+            //std::cout << "vehicle '" << v.getID() << "' does not supply vehicle parameter 'messenger'. Using default of " << customParameter2 << "\n";
         }
         // get custom vType parameter
         double customParameter3 = -1;
@@ -99,7 +104,7 @@ MSDevice_Messenger::buildVehicleDevices(SUMOVehicle& v, std::vector<MSDevice*>& 
             }
 
         } else {
-            std::cout << "vehicle '" << v.getID() << "' does not supply vType parameter 'messenger'. Using default of " << customParameter3 << "\n";
+           // std::cout << "vehicle '" << v.getID() << "' does not supply vType parameter 'messenger'. Using default of " << customParameter3 << "\n";
         }
         MSDevice_Messenger* device = new MSDevice_Messenger(v, "messenger_" + v.getID(),
                 oc.getFloat("device.messenger.parameter"),
@@ -125,7 +130,7 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
     //originalColor = libsumo::VehicleType::getColor(holder.getID());
     groupData.groupLeader = NULL;
     flag = 0;
-    std::cout << "initialized device '" << id << "' with myCustomValue1=" << myCustomValue1 << ", myCustomValue2=" << myCustomValue2 << ", myCustomValue3=" << myCustomValue3 << "\n";
+    //std::cout << "initialized device '" << id << "' with myCustomValue1=" << myCustomValue1 << ", myCustomValue2=" << myCustomValue2 << ", myCustomValue3=" << myCustomValue3 << "\n";
     //setIsLeader(true);
 }
 
@@ -161,19 +166,28 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
         originalColor = new libsumo::TraCIColor(libsumo::VehicleType::getColor(veh.getVehicleType().getID()));
     }
 
-    if (flag>0){
+    //if (flag>0){
 #ifdef debug
-        std::cout << veh.getEdge()->getID() << " helyen vagyok."<<std::endl;
+        /*std::cout << veh.getID()<< " auto: " << veh.getEdge()->getID() << " helyen vagyok."<<std::endl;
         MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
         std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
         if (vech.first!=NULL) {
             std::cout << vech.first->getID() << " van elottem." <<std::endl;
             flag=0;
+        }*/
+        if (veh.getID()=="carflow9.0") {
+            MSVehicle* myVech = static_cast<MSVehicle*>(&veh);
+            std::pair< const MSVehicle *const, double > vech = myVech->getLeader(50);
+            if (vech.first!=NULL) {
+                std::cout << vech.first->getID() << " van elottem." << std::endl;
+            } else
+                std::cout << "Nincs elottem senki." << std::endl;
         }
 #endif
-        --flag;
+    if (flag==1){
         GroupMessageHandler::Join(&veh);
     }
+    if (flag>0) flag--;
 
 
 #ifdef debug
@@ -199,7 +213,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
             }
             //delete exitMarkers;
 
-            flag = 5;//GroupMessageHandler::Join(&veh);
+            flag = 3;//GroupMessageHandler::Join(&veh);
         }
     }
 
@@ -210,6 +224,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
 bool
 MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveReminder::Notification reason, const MSLane* /* enteredLane */) {
     //std::cout << "device '" << getID() << "' notifyLeave: reason=" << reason << " currentEdge=" << veh.getEdge()->getID() << "\n";
+
     /*LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
     message -> processMessage();
     setIsLeader(true);*/
@@ -219,7 +234,10 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
         result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onExit(&veh);
         //ExitMarker:
         if (result!=NULL && groupData.groupLeader!=NULL){
-            GroupMessageHandler::tryToLeave(groupData.groupLeader);
+
+            GroupMessageHandler::tryToLeave(groupData.groupLeader, &veh);
+        } else if (groupData.groupLeader == &veh) {         //Leader left the entryMarker
+            groupData.canJoin = false;
         }
     }
 
@@ -305,7 +323,13 @@ bool MSDevice_Messenger::isAbleToJoin(SUMOVehicle *who) {
     return (groupData.nMembers < MAX_GROUP_MEMBERS && groupData.canJoin);
 }
 
+void MSDevice_Messenger::resetFlag() {
+    flag = 0;
+}
+
 void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
+    MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)who)->getLaneChangeModel();
+    smartLaneCh.requestChange(0);
     VehData* newMember = new VehData();
     newMember->vehicle = who;
     newMember->maxAccel = libsumo::VehicleType::getAccel(who->getVehicleType().getID());
@@ -347,6 +371,13 @@ void MSDevice_Messenger::newGroup() {
     color.r -= 20;
     color.g -= 20;
     color.b -= 20;
+#ifdef GROUP_DEBUG
+    color.r = 255;
+    color.g = 255;
+    color.b = 0;
+    groupData.groupColor = color;
+    color.g = 0;
+#endif
     libsumo::Vehicle::setColor(this->getHolder().getID(), color);
 }
 
@@ -358,16 +389,27 @@ void MSDevice_Messenger::setGroupMemberData(libsumo::TraCIColor color, SUMOVehic
 }
 
 void MSDevice_Messenger::notifyLeaved(SUMOVehicle *who) {
-    groupData.nExited++;
-    if (groupData.nExited > groupData.nMembers) finishGroup();
+
+    for (auto i = groupData.memberData.begin(); i!=groupData.memberData.end(); ++i){
+        if ((*i)->vehicle == who && !(*i)->exited) {
+            groupData.nExited++;
+            (*i)->exited = true;
+        }
+    }
+    if (groupData.nExited == groupData.nMembers) finishGroup();
 }
 
 void MSDevice_Messenger::finishGroup() {
+#ifdef debug
+    std::cout << "Csoportbontas." << std::endl;
+#endif
     MSDevice_Messenger* other;
     for (auto i = groupData.memberData.begin(); i!=groupData.memberData.end(); ++i){
         other = getMessengerDeviceFromVehicle((*i)->vehicle);
         other->groupData.clear();
         other->resetOriginalColor();
+        MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
+        smartLaneCh.requestChange(-1);
         delete *i;
     }
     groupData.clear();
