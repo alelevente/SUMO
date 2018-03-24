@@ -47,6 +47,13 @@
 // ===========================================================================
 // class definitions
 // ===========================================================================
+
+struct Step{
+    SUMOTime t;
+    MSLane* lane;
+    int laneOffset, result;
+};
+
 /**
 * @class MSLCM_LC2013
 * @brief A lane change model developed by D. Krajzewicz, J. Erdmann
@@ -71,6 +78,9 @@ public:
 	};
 
 	void requestChange(int direction);
+
+    int getLaneChange(MSLane *lane, int laneOffset);
+    void setLeader(MSLCM_Smart* leader);
 
 	LaneChangeModel getModelID() const;
 
@@ -269,7 +279,10 @@ protected:
 	//@}
 
 private:
-	int requested;
+	int requested = -1;
+    Step steps[30];
+    int actualStep = 0;
+    MSLCM_Smart* smartLeader = NULL;
 };
 
 

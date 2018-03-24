@@ -107,7 +107,8 @@ mySpeedGainProbability(0),
 myKeepRightProbability(0),
 myLeadingBlockerLength(0),
 myLeftSpace(0),
-requested(0),
+requested(-1),
+actualStep(0),
 myLookAheadSpeed(LOOK_AHEAD_MIN_SPEED),
 myStrategicParam(v.getVehicleType().getParameter().getLCParam(SUMO_ATTR_LCA_STRATEGIC_PARAM, 1)),
 myCooperativeParam(v.getVehicleType().getParameter().getLCParam(SUMO_ATTR_LCA_COOPERATIVE_PARAM, 1)),
@@ -134,7 +135,13 @@ MSLCM_Smart::~MSLCM_Smart() {
 }
 
 void MSLCM_Smart::requestChange(int direction){
-	std::cout << "Lane change requested to: " << direction << std::endl;
+	std::cout << myVehicle.getID() <<"lane change requested to: ";
+	switch (direction){
+		case -100: std::cout << "flagged" << std::endl; break;
+		case -1: std::cout << "stupid" << std::endl; break;
+		case 0: std::cout << "smart" << std::endl; break;
+		default: std::cout << "flagged" << std::endl; break;
+	}
 	requested = direction;
 }
 
@@ -183,6 +190,14 @@ MSVehicle** firstBlocked) {
 		std::cout << SIMTIME << " veh=" << myVehicle.getID() << " result=" << toString((LaneChangeAction)result) << " blocked=" << toString((LaneChangeAction)blocked) << "\n\n\n";
 	}
 #endif
+
+	if (result!=0) {
+		steps[actualStep].lane = myVehicle.getLane();
+		steps[actualStep].laneOffset = laneOffset;
+		steps[actualStep].result = result;
+		actualStep++;
+		if (actualStep == 30) actualStep = 0;
+	}
 
 	return result;
 }
@@ -1053,6 +1068,9 @@ MSLCM_Smart::changed() {
 	myDontBrake = false;
 }
 
+void MSLCM_Smart::setLeader(MSLCM_Smart *leader) {
+    smartLeader = leader;
+}
 
 int
 MSLCM_Smart::_wantsChange(
@@ -1068,7 +1086,11 @@ MSVehicle** lastBlocked,
 MSVehicle** firstBlocked) {
 	//std::cout << "requested: " << requested << std::endl;
 	//std::cout << "speedGain: " << mySpeedGainProbability << std::endl;
-	if (requested >= 0) return requested;
+	if (requested > 0) return requested;
+	else if (requested == -100) return 0;
+    if (requested == 0){
+        return smartLeader -> getLaneChange(myVehicle.getLane(), laneOffset);
+    }
 	//if (requested != 0) return laneOffset;
 	assert(laneOffset == 1 || laneOffset == -1);
 	const SUMOTime currentTime = MSNet::getInstance()->getCurrentTimeStep();
@@ -1767,9 +1789,19 @@ MSVehicle** firstBlocked) {
 	}
 #endif
 
+
 	return ret;
 }
 
+int MSLCM_Smart::getLaneChange(MSLane *lane, int laneOffset) {
+    for (int i=0; i<30; ++i){
+		if (steps[i].lane==lane && laneOffset == steps[i].laneOffset) {
+			std::cout << "needed: " << steps[i].laneOffset <<" : " << steps[i].result << std::endl;
+			return steps[i].result;
+		}
+	}
+    return 0;
+}
 
 void
 MSLCM_Smart::getRoundaboutAheadInfo(const MSLCM_Smart* lcm, const MSVehicle::LaneQ& curr, const MSVehicle::LaneQ& neigh,

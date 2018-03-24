@@ -18,7 +18,7 @@ SUMOVehicle* GroupMessageHandler::Join(SUMOVehicle *who) {
     if (followed!=NULL && followed->getExitMarker() == follower->getExitMarker()){
         MSDevice_Messenger* leader = getMessengerDeviceFromVehicle(followed->getLeader());
         //Good group?
-        if (leader->isAbleToJoin(who)) {
+        if (leader != NULL && leader->isAbleToJoin(who)) {
             leader->joinNewMember(who);
             follower->resetFlag();
         }

@@ -49,7 +49,7 @@
 #include "Markers/MarkerSystem.h"
 
 #ifndef debug
-#define debug
+
 #endif
 
 #ifdef debug
@@ -58,7 +58,7 @@ bool done = false;
 #endif
 
 #ifndef GROUP_DEBUG
-#define GROUP_DEBUG
+
 #endif
 
 // ===========================================================================
@@ -213,7 +213,10 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
             }
             //delete exitMarkers;
 
-            flag = 3;//GroupMessageHandler::Join(&veh);
+            flag = STEP_FLAG;//GroupMessageHandler::Join(&veh);
+            MSVehicle* me = (MSVehicle*) &veh;
+            MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
+            smartLeader->requestChange(-100);
         }
     }
 
@@ -330,6 +333,9 @@ void MSDevice_Messenger::resetFlag() {
 void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
     MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)who)->getLaneChangeModel();
     smartLaneCh.requestChange(0);
+    MSVehicle* me = (MSVehicle*) &myHolder;
+    MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
+    smartLaneCh.setLeader(smartLeader);
     VehData* newMember = new VehData();
     newMember->vehicle = who;
     newMember->maxAccel = libsumo::VehicleType::getAccel(who->getVehicleType().getID());
@@ -361,6 +367,8 @@ void MSDevice_Messenger::newGroup() {
     groupData.groupLeader = &myHolder;
     groupData.canJoin = true;
     flag = 0;
+    MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
+    smartLaneCh.requestChange(-1);
 
     libsumo::TraCIColor color;
     color.a = 255;
@@ -368,9 +376,9 @@ void MSDevice_Messenger::newGroup() {
     color.g = rand() % 256;
     color.b = rand() % 256;
     groupData.groupColor = color;
-    color.r -= 20;
-    color.g -= 20;
-    color.b -= 20;
+    color.r -= color.r*0.33;
+    color.g -= color.g*0.33;
+    color.b -= color.b*0.33;
 #ifdef GROUP_DEBUG
     color.r = 255;
     color.g = 255;
@@ -410,6 +418,7 @@ void MSDevice_Messenger::finishGroup() {
         other->resetOriginalColor();
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
         smartLaneCh.requestChange(-1);
+        smartLaneCh.setLeader(NULL);
         delete *i;
     }
     groupData.clear();

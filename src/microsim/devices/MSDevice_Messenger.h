@@ -36,6 +36,7 @@
 
 static const double MAX_DISTANCE=100;
 static const int MAX_GROUP_MEMBERS=15;
+static const int STEP_FLAG = 2;
 // ===========================================================================
 // class declarations
 // ===========================================================================
