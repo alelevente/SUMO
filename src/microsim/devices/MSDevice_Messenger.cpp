@@ -45,6 +45,7 @@
 #include <microsim/devices/Messages/GroupMessageHandler.h>
 #include <libsumo/VehicleType.h>
 #include <microsim/lcmodels/MSLCM_Smart.h>
+#include <microsim/cfmodels/MSCFModel_Smart.h>
 #include "Messages/helper.h"
 #include "Markers/MarkerSystem.h"
 
@@ -334,6 +335,8 @@ void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
     MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)who)->getLaneChangeModel();
     smartLaneCh.requestChange(0);
     MSVehicle* me = (MSVehicle*) &myHolder;
+    ((MSCFModel_Smart*) &(const_cast<MSCFModel&>(me -> getCarFollowModel()))) ->setSmart(true);
+
     MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
     smartLaneCh.setLeader(smartLeader);
     VehData* newMember = new VehData();

@@ -1054,6 +1054,7 @@ MSLCM_Smart::prepareStep() {
 void
 MSLCM_Smart::changed() {
 	myOwnState = 0;
+    neededStep = 0;
 	//requested = 0;
 	mySpeedGainProbability = 0;
 	myKeepRightProbability = 0;
@@ -1794,9 +1795,11 @@ MSVehicle** firstBlocked) {
 }
 
 int MSLCM_Smart::getLaneChange(MSLane *lane, int laneOffset) {
+    if (neededStep!=0) return neededStep;
     for (int i=0; i<30; ++i){
 		if (steps[i].lane==lane && laneOffset == steps[i].laneOffset) {
 			std::cout << "needed: " << steps[i].laneOffset <<" : " << steps[i].result << std::endl;
+            neededStep = steps[i].result;
 			return steps[i].result;
 		}
 	}

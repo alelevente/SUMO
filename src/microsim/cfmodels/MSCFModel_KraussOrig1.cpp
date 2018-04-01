@@ -60,6 +60,10 @@ MSCFModel_KraussOrig1::patchSpeedBeforeLC(const MSVehicle* veh, double vMin, dou
     return vDawdle;
 }
 
+double
+MSCFModel_KraussOrig1::finalizeSpeed(MSVehicle *const veh, double vPos) const {
+    MSCFModel::finalizeSpeed(veh, vPos);
+}
 
 double
 MSCFModel_KraussOrig1::followSpeed(const MSVehicle* const veh, double speed, double gap, double predSpeed, double predMaxDecel) const {

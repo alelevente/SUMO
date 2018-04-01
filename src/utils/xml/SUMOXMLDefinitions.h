@@ -263,6 +263,7 @@ enum SumoXMLTag {
     SUMO_TAG_CF_BKERNER,
     SUMO_TAG_CF_WIEDEMANN,
     SUMO_TAG_CF_RAIL,
+    SUMO_TAG_CF_SMART,
     /// @}
 
     /// @name Pedestrians

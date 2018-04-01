@@ -23,6 +23,8 @@ set(microsim_cfmodels_STAT_SRCS
    MSCFModel_Wiedemann.h
    MSCFModel_Rail.cpp
    MSCFModel_Rail.h
+        MSCFModel_Smart.cpp
+        MSCFModel_Smart.h
 )
 
 add_library(microsim_cfmodels STATIC ${microsim_cfmodels_STAT_SRCS})

@@ -546,6 +546,18 @@ SUMOVehicleParserHelper::getAllowedCFModelAttrs() {
         allowedCFModelAttrs[SUMO_TAG_CF_KRAUSS_PLUS_SLOPE] = kraussParams;
         std::set<SumoXMLAttr> allParams(kraussParams);
 
+        std::set<SumoXMLAttr> smartParams;
+        smartParams.insert(SUMO_ATTR_ACCEL);
+        smartParams.insert(SUMO_ATTR_DECEL);
+        smartParams.insert(SUMO_ATTR_SIGMA);
+        smartParams.insert(SUMO_ATTR_TAU);
+        smartParams.insert(SUMO_ATTR_TMP1);
+        smartParams.insert(SUMO_ATTR_TMP2);
+        smartParams.insert(SUMO_ATTR_TMP3);
+        smartParams.insert(SUMO_ATTR_TMP4);
+        smartParams.insert(SUMO_ATTR_TMP5);
+        allowedCFModelAttrs[SUMO_TAG_CF_SMART] = smartParams;
+
         std::set<SumoXMLAttr> kraussXParams(kraussParams);
         kraussXParams.insert(SUMO_ATTR_TMP1);
         kraussXParams.insert(SUMO_ATTR_TMP2);

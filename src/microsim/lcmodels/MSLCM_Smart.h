@@ -283,6 +283,7 @@ private:
     Step steps[30];
     int actualStep = 0;
     MSLCM_Smart* smartLeader = NULL;
+    int neededStep = 0;
 };
 
 
