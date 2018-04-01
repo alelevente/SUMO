@@ -4,12 +4,14 @@
 
 #include <microsim/MSVehicle.h>
 #include <microsim/devices/MSDevice_Messenger.h>
+#include <libsumo/Vehicle.h>
 #include "GroupMessageHandler.h"
 #include "helper.h"
 
 SUMOVehicle* GroupMessageHandler::Join(SUMOVehicle *who) {
     MSVehicle* myVech = static_cast<MSVehicle*>(who);
     std::pair< const MSVehicle *const, double > vech = myVech->getLeader(MAX_DISTANCE);
+    std::cout << who->getID() << " speed set." << std::endl;
 
     MSVehicle* other = const_cast<MSVehicle*>(vech.first);
     //Going in the direction of the same ExitMarker?

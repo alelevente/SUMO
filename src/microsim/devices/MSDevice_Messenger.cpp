@@ -62,6 +62,10 @@ bool done = false;
 
 #endif
 
+#ifndef PROBA
+#define PROBA
+#endif
+
 // ===========================================================================
 // method definitions
 // ===========================================================================
@@ -207,6 +211,9 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
         result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onEnter(&veh);
         //EntryMarker:
         if (result!=NULL && groupData.groupLeader==NULL){
+#ifdef PROBA
+            libsumo::Vehicle::setLaneChangeMode(myHolder.getID(),  128+64 + 2+1);
+#endif
             std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(result);
             exitMarker = NULL;
             for (auto i = exitMarkers->begin(); i!=exitMarkers->end(); ++i){
@@ -335,7 +342,13 @@ void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
     MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)who)->getLaneChangeModel();
     smartLaneCh.requestChange(0);
     MSVehicle* me = (MSVehicle*) &myHolder;
-    ((MSCFModel_Smart*) &(const_cast<MSCFModel&>(me -> getCarFollowModel()))) ->setSmart(true);
+    //libsumo::Vehicle::setSpeed(me->getID(), 3);
+
+    //((MSCFModel_Smart*) &(const_cast<MSCFModel&>(me -> getCarFollowModel()))) ->setSmart(true);
+    //if (!me->hasInfluencer()) std::cerr << "nincs";
+    /*
+    MSVehicle::Influencer influencer = me->getInfluencer();
+    if (&influencer == NULL) me->inf*/
 
     MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
     smartLaneCh.setLeader(smartLeader);
@@ -367,6 +380,10 @@ inline void GroupData::clear() {
 
 void MSDevice_Messenger::newGroup() {
     groupData.clear();
+#ifdef PROBA
+    libsumo::Vehicle::setSpeedMode(myHolder.getID(), 16+8+4+2+1);
+    libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
+#endif PROBA
     groupData.groupLeader = &myHolder;
     groupData.canJoin = true;
     flag = 0;
@@ -415,10 +432,12 @@ void MSDevice_Messenger::finishGroup() {
     std::cout << "Csoportbontas." << std::endl;
 #endif
     MSDevice_Messenger* other;
+    libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
     for (auto i = groupData.memberData.begin(); i!=groupData.memberData.end(); ++i){
         other = getMessengerDeviceFromVehicle((*i)->vehicle);
         other->groupData.clear();
         other->resetOriginalColor();
+        libsumo::Vehicle::setSpeed(other->myHolder.getID(), -1);
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
         smartLaneCh.requestChange(-1);
         smartLaneCh.setLeader(NULL);
