@@ -225,6 +225,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
             MSVehicle* me = (MSVehicle*) &veh;
             MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
             smartLeader->requestChange(-100);
+            //smartLeader->setLeading(false);
         }
     }
 
@@ -389,6 +390,7 @@ void MSDevice_Messenger::newGroup() {
     flag = 0;
     MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
     smartLaneCh.requestChange(-1);
+    smartLaneCh.setLeading(true);
 
     libsumo::TraCIColor color;
     color.a = 255;
@@ -433,6 +435,8 @@ void MSDevice_Messenger::finishGroup() {
 #endif
     MSDevice_Messenger* other;
     libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
+    MSLCM_Smart* smartLane = (MSLCM_Smart*) &(((MSVehicle*)&myHolder)->getLaneChangeModel());
+    smartLane->setLeading(false);
     for (auto i = groupData.memberData.begin(); i!=groupData.memberData.end(); ++i){
         other = getMessengerDeviceFromVehicle((*i)->vehicle);
         other->groupData.clear();
@@ -441,6 +445,7 @@ void MSDevice_Messenger::finishGroup() {
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
         smartLaneCh.requestChange(-1);
         smartLaneCh.setLeader(NULL);
+        smartLaneCh.setLeading(false);
         delete *i;
     }
     groupData.clear();
@@ -449,6 +454,36 @@ void MSDevice_Messenger::finishGroup() {
 
 void MSDevice_Messenger::resetOriginalColor() {
     libsumo::Vehicle::setColor(myHolder.getID(),*originalColor);
+}
+
+
+void MSDevice_Messenger::setVehicleSpeed(double speed) {
+    libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
+}
+
+double MSDevice_Messenger::getMaxSpeed() {
+    return myHolder.getEdge()->getSpeedLimit();
+}
+
+void MSDevice_Messenger::addLetIn(SUMOVehicle *who, double speed) {
+    if (libsumo::Vehicle::getSpeed(myHolder.getID())>speed) libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
+    if (nLetInVechs == 10) throw OutOfBoundsException();
+    letInVechs[nLetInVechs++] = who;
+}
+
+bool MSDevice_Messenger::canIGetIn(SUMOVehicle *who) {
+    return letInVechs[nLetInVechs-1]==who;
+}
+
+void MSDevice_Messenger::letInMade(SUMOVehicle *who) {
+    //someone was let in:
+    --nLetInVechs;
+    //when everyone was let in:
+    if (nLetInVechs == 0) libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
+}
+
+int MSDevice_Messenger::getGroupSize() {
+    return groupData.nMembers;
 }
 
 /****************************************************************************/

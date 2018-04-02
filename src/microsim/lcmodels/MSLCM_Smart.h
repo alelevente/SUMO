@@ -284,6 +284,19 @@ private:
     int actualStep = 0;
     MSLCM_Smart* smartLeader = NULL;
     int neededStep = 0;
+	bool leading = false;
+	MSVehicle* followerGroupLeader;
+	int neededAction = 0;
+    Step required;
+
+public:
+	bool isLeading() const;
+
+	void setLeading(bool leading);
+
+private:
+
+	static MSVehicle* getFollowerGroupLeader(const MSLane& neighLane, double myPosOnLane);
 };
 
 

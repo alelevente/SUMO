@@ -45,6 +45,8 @@
 #include "MSLCM_Smart.h"
 #include <microsim/devices/MSDevice_Messenger.h>
 #include <microsim/devices/Messages/helper.h>
+#include <microsim/devices/Messages/SpeedMessages.h>
+#include <libsumo/Vehicle.h>
 
 // ===========================================================================
 // variable definitions
@@ -98,6 +100,7 @@
 
 //#define DEBUG_COND (myVehicle.getID() == "disabled")
 #define DEBUG_COND (myVehicle.isSelected())
+
 
 // ===========================================================================
 // member method definitions
@@ -156,17 +159,16 @@ LaneChangeModel MSLCM_Smart::getModelID() const {
 	return LCM_SMART;
 }
 
-MSVehicle* getFollowerGroupLeader(const MSLane& neighLane, double myPosOnLane){
+MSVehicle* MSLCM_Smart::getFollowerGroupLeader(const MSLane& neighLane, double myPosOnLane){
 	MSLane* lane = const_cast<MSLane*>(&neighLane);
 	std::vector<MSVehicle*> vehs = lane->getVehiclesSecure();
 	auto i = vehs.begin();
 	while (i != vehs.end()){
-		if ((*i)->getPositionOnLane() > myPosOnLane) ++i;
-		if ((*i)->hasDevice("messenger")){
-			if (getMessengerDeviceFromVehicle(*i)->getLeader() == *i) return *i;
-			else ++i;
+		if ((*i)->getPositionOnLane() < myPosOnLane
+			&& getMessengerDeviceFromVehicle(*i)->getLeader() == *i) {
+			return *i;
 		}
-		else ++i;
+		++i;
 	}
 	return NULL;
 }
@@ -198,24 +200,59 @@ MSVehicle** firstBlocked) {
 	}
 #endif
 	//std::cout << _wantsChange(laneOffset, msgPass, blocked, leader, neighLead, neighFollow, neighLane, preb, lastBlocked, firstBlocked) << std::endl;
-	const int result = _wantsChange(laneOffset, msgPass, blocked, leader, neighLead, neighFollow, neighLane, preb, lastBlocked, firstBlocked);
-	if (neighLead.first!=NULL) std::cout << myVehicle.getID() << " elott van: " << neighLead.first->getID() << " tavolsag " << neighLead.second << std::endl;
-    if (neighFollow.first!=NULL) std::cout << myVehicle.getID() << " mogott van: " << neighFollow.first->getID() << " tavolsag " << neighFollow.second << std::endl;
+    //if change is not required earlier:
+    int result = 0;
+    if (required.laneOffset==0) {
+        result = _wantsChange(laneOffset, msgPass, blocked, leader, neighLead, neighFollow, neighLane, preb,
+                                        lastBlocked, firstBlocked);
+        //if (neighLead.first!=NULL) std::cout << myVehicle.getID() << " elott van: " << neighLead.first->getID() << " tavolsag " << neighLead.second << std::endl;
+        //if (neighFollow.first!=NULL) std::cout << myVehicle.getID() << " mogott van: " << neighFollow.first->getID() << " tavolsag " << neighFollow.second << std::endl;
 
 #ifdef DEBUG_WANTS_CHANGE
-	if (DEBUG_COND) {
-		std::cout << SIMTIME << " veh=" << myVehicle.getID() << " result=" << toString((LaneChangeAction)result) << " blocked=" << toString((LaneChangeAction)blocked) << "\n\n\n";
-	}
+        if (DEBUG_COND) {
+            std::cout << SIMTIME << " veh=" << myVehicle.getID() << " result=" << toString((LaneChangeAction)result) << " blocked=" << toString((LaneChangeAction)blocked) << "\n\n\n";
+        }
+#endif
+#ifdef PROBA
+        std::cout << myVehicle.getID() << ": " << std::endl;
+        if (getFollowerGroupLeader(neighLane, myVehicle.getPositionOnLane())!=NULL)
+            std::cout << myVehicle.getID() << "-t követő leader: " << getFollowerGroupLeader(neighLane, myVehicle.getPositionOnLane());
 #endif
 
-	if (result!=0) {
-		steps[actualStep].lane = myVehicle.getLane();
-		steps[actualStep].laneOffset = laneOffset;
-		steps[actualStep].result = result;
-		actualStep++;
-		if (actualStep == 30) actualStep = 0;
-	}
+        //Warning the leader of the next group:
+        if (result != 0 && leading) {
+            required.laneOffset = laneOffset;
+            required.result = result;
 
+            //requesting a "let in":
+            followerGroupLeader = getFollowerGroupLeader(neighLane, myVehicle.getPositionOnLane());
+            LetUsIn* letUsIn = new LetUsIn(&myVehicle, followerGroupLeader, NULL);
+            letUsIn->setContent(getMessengerDeviceFromVehicle(&myVehicle)->getGroupSize());
+            letUsIn->processMessage();
+            delete letUsIn;
+            libsumo::Vehicle::setSpeed(myVehicle.getID(), myVehicle.getEdge()->getSpeedLimit()*0.5);
+
+        //Our group has to follow leader:
+            steps[actualStep].lane = myVehicle.getLane();
+            steps[actualStep].laneOffset = laneOffset;
+            steps[actualStep].result = result;
+            actualStep++;
+            if (actualStep == 30) actualStep = 0;
+        }
+        result = 0;
+    } else {
+        //in this case we can try to change lanes:
+        if (neighFollow.first == followerGroupLeader && getMessengerDeviceFromVehicle(followerGroupLeader)->canIGetIn(&myVehicle)){
+            if (laneOffset == required.laneOffset) {
+                result = required.result;
+            } else if (myVehicle.getEdge()->getLength() - myVehicle.getPositionOnLane() <= 30) {
+                libsumo::Vehicle::setSpeed(myVehicle.getID(), 0);
+                HadToStop* hadToStop = new HadToStop(&myVehicle, followerGroupLeader, NULL);
+                hadToStop->processMessage();
+                delete hadToStop;
+            }
+        }
+    }
 	return result;
 }
 
@@ -1084,6 +1121,17 @@ MSLCM_Smart::changed() {
 	myLookAheadSpeed = LOOK_AHEAD_MIN_SPEED;
 	myVSafes.clear();
 	myDontBrake = false;
+
+
+    if (required.result!=0) {
+        required.result = 0;
+        required.laneOffset = 0;
+        libsumo::Vehicle::setSpeed(myVehicle.getID(), -1);
+        CameIn* cameIn = new CameIn(&myVehicle, followerGroupLeader, NULL);
+        cameIn->processMessage();
+        delete cameIn;
+        followerGroupLeader = NULL;
+    }
 }
 
 void MSLCM_Smart::setLeader(MSLCM_Smart *leader) {
@@ -1994,6 +2042,14 @@ MSLCM_Smart::setParameter(const std::string& key, const std::string& value) {
 	else {
 		throw InvalidArgument("Setting parameter '" + key + "' is not supported for laneChangeModel of type '" + toString(myModel) + "'");
 	}
+}
+
+bool MSLCM_Smart::isLeading() const {
+	return leading;
+}
+
+void MSLCM_Smart::setLeading(bool leading) {
+	MSLCM_Smart::leading = leading;
 }
 
 /****************************************************************************/

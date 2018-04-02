@@ -199,12 +199,21 @@ public:
     void notifyLeaved(SUMOVehicle* who);
     void finishGroup();
     void resetFlag();
+    int getGroupSize();
+
+    void setVehicleSpeed(double speed);
+    double getMaxSpeed();
+    void addLetIn(SUMOVehicle* who, double speed);
+    void letInMade(SUMOVehicle* who);
+    bool canIGetIn(SUMOVehicle* who);
 
 private:
     ExitMarker* exitMarker;
     GroupData groupData;
     libsumo::TraCIColor* originalColor;
     int flag;
+    SUMOVehicle* letInVechs[10];
+    int nLetInVechs = 0;
 
 private:
     void resetOriginalColor();
