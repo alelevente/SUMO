@@ -11,7 +11,7 @@
 SUMOVehicle* GroupMessageHandler::Join(SUMOVehicle *who) {
     MSVehicle* myVech = static_cast<MSVehicle*>(who);
     std::pair< const MSVehicle *const, double > vech = myVech->getLeader(MAX_DISTANCE);
-    std::cout << who->getID() << " speed set." << std::endl;
+    //std::cout << who->getID() << " speed set." << std::endl;
 
     MSVehicle* other = const_cast<MSVehicle*>(vech.first);
     //Going in the direction of the same ExitMarker?

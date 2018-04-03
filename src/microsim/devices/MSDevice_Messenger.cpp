@@ -212,7 +212,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
         //EntryMarker:
         if (result!=NULL && groupData.groupLeader==NULL){
 #ifdef PROBA
-            libsumo::Vehicle::setLaneChangeMode(myHolder.getID(),  128+64 + 2+1);
+            //libsumo::Vehicle::setLaneChangeMode(myHolder.getID(),  128+64 + 2+1);
 #endif
             std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(result);
             exitMarker = NULL;
@@ -353,6 +353,7 @@ void MSDevice_Messenger::joinNewMember(SUMOVehicle *who) {
 
     MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
     smartLaneCh.setLeader(smartLeader);
+    smartLaneCh.setLeading(false);
     VehData* newMember = new VehData();
     newMember->vehicle = who;
     newMember->maxAccel = libsumo::VehicleType::getAccel(who->getVehicleType().getID());
