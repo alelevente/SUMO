@@ -8,7 +8,7 @@
 #include <microsim/devices/MSDevice_Messenger.h>
 
 #ifndef debug
-#define debug
+
 #endif
 
 class SUMOVehicle;

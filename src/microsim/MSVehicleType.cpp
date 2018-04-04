@@ -35,6 +35,7 @@
 #include <utils/common/RandHelper.h>
 #include <utils/vehicle/SUMOVTypeParameter.h>
 #include <microsim/cfmodels/MSCFModel_Rail.h>
+#include <microsim/cfmodels/MSCFModel_Smart.h>
 #include "MSNet.h"
 #include "cfmodels/MSCFModel_IDM.h"
 #include "cfmodels/MSCFModel_Kerner.h"
@@ -333,6 +334,16 @@ MSVehicleType::build(SUMOVTypeParameter& from) {
                     from.getCFParam(SUMO_ATTR_TMP4, 1.),
                     from.getCFParam(SUMO_ATTR_TMP5, 1.));
             break;
+        case SUMO_TAG_CF_SMART:
+            vtype->myCarFollowModel = new MSCFModel_Smart(vtype,
+                                          from.getCFParam(SUMO_ATTR_ACCEL, SUMOVTypeParameter::getDefaultAccel(from.vehicleClass)),
+                                          from.getCFParam(SUMO_ATTR_DECEL, SUMOVTypeParameter::getDefaultDecel(from.vehicleClass)),
+                                          from.getCFParam(SUMO_ATTR_SIGMA, SUMOVTypeParameter::getDefaultImperfection(from.vehicleClass)),
+                                          from.getCFParam(SUMO_ATTR_TAU, 1.),
+                                          from.getCFParam(SUMO_ATTR_TMP1, 1.),
+                                          from.getCFParam(SUMO_ATTR_TMP1, 1.));
+            break;
+
         case SUMO_TAG_CF_DANIEL1:
             vtype->myCarFollowModel = new MSCFModel_Daniel1(vtype, accel, decel, emergencyDecel, apparentDecel, sigma, tau,
                     from.getCFParam(SUMO_ATTR_TMP1, 1.),

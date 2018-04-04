@@ -73,6 +73,8 @@ public:
      */
     double followSpeed(const MSVehicle* const veh, double speed, double gap2pred, double predSpeed, double predMaxDecel) const;
 
+    virtual double finalizeSpeed(MSVehicle* const veh, double vPos) const;
+
 
     /** @brief Computes the vehicle's safe speed for approaching a non-moving obstacle (no dawdling)
      * @param[in] veh The vehicle (EGO)

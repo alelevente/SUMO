@@ -172,6 +172,7 @@ StringBijection<int>::Entry SUMOXMLDefinitions::tags[] = {
     { "carFollowing-BKerner",       SUMO_TAG_CF_BKERNER },
     { "carFollowing-Wiedemann",     SUMO_TAG_CF_WIEDEMANN },
     { "carFollowing-Rail",          SUMO_TAG_CF_RAIL },
+    { "carFollowing-Smart",     SUMO_TAG_CF_SMART },
     // Person
     { "person",                     SUMO_TAG_PERSON },
     { "personTrip",                 SUMO_TAG_PERSONTRIP },
@@ -676,6 +677,7 @@ StringBijection<LaneChangeModel>::Entry SUMOXMLDefinitions::laneChangeModelValue
     { "DK2008",     LCM_DK2008 },
     { "LC2013",     LCM_LC2013 },
     { "SL2015",     LCM_SL2015 },
+    { "SMART" ,     LCM_SMART},
     { "default",    LCM_DEFAULT } //< must be the last one
 };
 
@@ -685,6 +687,7 @@ StringBijection<SumoXMLTag>::Entry SUMOXMLDefinitions::carFollowModelValues[] = 
     { "Krauss",      SUMO_TAG_CF_KRAUSS },
     { "KraussPS",    SUMO_TAG_CF_KRAUSS_PLUS_SLOPE },
     { "KraussOrig1", SUMO_TAG_CF_KRAUSS_ORIG1 },
+    { "SMART",       SUMO_TAG_CF_SMART },
     { "KraussX",     SUMO_TAG_CF_KRAUSSX }, // experimental extensions to the Krauss model
     { "SmartSK",     SUMO_TAG_CF_SMART_SK },
     { "Daniel1",     SUMO_TAG_CF_DANIEL1 },

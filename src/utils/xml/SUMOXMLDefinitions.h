@@ -263,6 +263,7 @@ enum SumoXMLTag {
     SUMO_TAG_CF_BKERNER,
     SUMO_TAG_CF_WIEDEMANN,
     SUMO_TAG_CF_RAIL,
+    SUMO_TAG_CF_SMART,
     /// @}
 
     /// @name Pedestrians
@@ -890,7 +891,9 @@ enum SumoXMLNodeType {
     NODETYPE_NOJUNCTION,
     NODETYPE_INTERNAL,
     NODETYPE_DEAD_END,
-    NODETYPE_DEAD_END_DEPRECATED
+    NODETYPE_DEAD_END_DEPRECATED,
+    NODETYPE_SMART_MARKER_INPUT,        //for non-hierarchal smart input marker
+    NODETYPE_SMART_MARKER_OUTPUT        //for non-hierarchal smart output marker
 };
 
 
@@ -1104,6 +1107,7 @@ enum LaneChangeModel {
     LCM_DK2008,
     LCM_LC2013,
     LCM_SL2015,
+    LCM_SMART,
     LCM_DEFAULT
 };
 
