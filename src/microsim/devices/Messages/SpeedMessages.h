@@ -6,7 +6,8 @@
 #define SUMO_SPEEDMESSAGES_H
 
 static int SAFETY_DISTANCE = 30;
-static double ESTIMATED_LC_TIME = 30;
+static double ESTIMATED_LC_TIME = 15;
+static double SPEED_BETWEEN_MARKERS =0;
 
 #include "Message.h"
 

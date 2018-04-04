@@ -206,6 +206,9 @@ public:
     void addLetIn(SUMOVehicle* who, double speed);
     void letInMade(SUMOVehicle* who);
     bool canIGetIn(SUMOVehicle* who);
+    double getGroupLength();
+    void setCanJoin(bool canJoin);
+    void notifyMemberLC();
 
 private:
     ExitMarker* exitMarker;
@@ -213,7 +216,7 @@ private:
     libsumo::TraCIColor* originalColor;
     int flag;
     SUMOVehicle* letInVechs[10];
-    int nLetInVechs = 0;
+    int nLetInVechs = 0, nChanged = 0;
 
 private:
     void resetOriginalColor();

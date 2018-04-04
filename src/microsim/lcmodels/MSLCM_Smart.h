@@ -122,6 +122,7 @@ public:
 		const MSCFModel& cfModel);
 
 	void changed();
+	void wholeGroupChanged();
 
 	void prepareStep();
 
@@ -286,7 +287,7 @@ private:
     int neededStep = 0;
 	bool leading = false;
 	MSVehicle* followerGroupLeader;
-	int neededAction = 0;
+	int nChanged = 0;
     Step required;
 
 public:

@@ -202,7 +202,7 @@ MSVehicle** firstBlocked) {
 		if (required.result==0){
 			result = _wantsChange(laneOffset, msgPass, blocked, leader, neighLead, neighFollow, neighLane, preb,
 								  lastBlocked, firstBlocked);
-			
+
 			//strategical lane change is neeeded:
 			if (result & LCA_WANTS_LANECHANGE && result & LCA_STRATEGIC) {
 				//make it urgent
@@ -212,8 +212,12 @@ MSVehicle** firstBlocked) {
 				if (followerGroupLeader != NULL) {
 					std::cout << myVehicle.getID() << " beengedést kért: " << followerGroupLeader->getID() << "-tól/től"
 							  << std::endl;
+
+                    MSDevice_Messenger* messenger = getMessengerDeviceFromVehicle(&myVehicle);
+                    double groupLength = messenger->getGroupLength()+20.0;
+					messenger->setCanJoin(false);
 					LetUsIn *letUsIn = new LetUsIn(&myVehicle, followerGroupLeader, NULL);
-					letUsIn->setContent(getMessengerDeviceFromVehicle(&myVehicle)->getGroupSize() * 20);
+					letUsIn->setContent(groupLength);
 					letUsIn->processMessage();
 					delete letUsIn;
 				}
@@ -1103,15 +1107,12 @@ MSLCM_Smart::changed() {
 	myVSafes.clear();
 	myDontBrake = false;
 
+	if (smartLeader!=NULL) {
+		getMessengerDeviceFromVehicle((SUMOVehicle*) &(smartLeader->myVehicle))->notifyMemberLC();
+	}
 
     if (required.result!=0) {
         libsumo::Vehicle::setSpeed(myVehicle.getID(), -1);
-		if (followerGroupLeader!=NULL) {
-			CameIn *cameIn = new CameIn(&myVehicle, followerGroupLeader, NULL);
-			cameIn->processMessage();
-			delete cameIn;
-		}
-        followerGroupLeader = NULL;
 
 		steps[actualStep].lane = myVehicle.getLane();
 		steps[actualStep].laneOffset = required.laneOffset;
@@ -1120,6 +1121,15 @@ MSLCM_Smart::changed() {
 		required.laneOffset = 0;
     }
 	actualStep++;
+}
+
+void MSLCM_Smart::wholeGroupChanged() {
+	if (followerGroupLeader!=NULL) {
+		CameIn *cameIn = new CameIn(&myVehicle, followerGroupLeader, NULL);
+		cameIn->processMessage();
+		delete cameIn;
+	}
+	followerGroupLeader = NULL;
 }
 
 void MSLCM_Smart::setLeader(MSLCM_Smart *leader) {
@@ -1141,7 +1151,10 @@ MSVehicle** firstBlocked) {
 	if (requested > 0) return requested;
 	else if (requested == -100) return 0;
     if (requested == 0){
-        return smartLeader -> getLaneChange(myVehicle.getLane(), actualStep);
+        int requested = smartLeader -> getLaneChange(myVehicle.getLane(), actualStep);
+        if (requested != 0) libsumo::Vehicle::setSpeed(myVehicle.getID(), 0.5*myVehicle.getEdge()->getSpeedLimit());
+		if (smartLeader->followerGroupLeader != neighFollow.first) requested = 0;
+        return requested;
     }
 
 

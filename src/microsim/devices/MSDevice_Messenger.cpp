@@ -467,7 +467,10 @@ double MSDevice_Messenger::getMaxSpeed() {
 }
 
 void MSDevice_Messenger::addLetIn(SUMOVehicle *who, double speed) {
-    if (libsumo::Vehicle::getSpeed(myHolder.getID())>speed) libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
+    if (myHolder.getSpeed() > speed) {
+        libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
+        std::cout << "Sebesség beállítva: " << speed << " m/s " << myHolder.getID() << std::endl;
+    }
     if (nLetInVechs == 10) throw OutOfBoundsException();
     letInVechs[nLetInVechs++] = who;
 }
@@ -485,6 +488,24 @@ void MSDevice_Messenger::letInMade(SUMOVehicle *who) {
 
 int MSDevice_Messenger::getGroupSize() {
     return groupData.nMembers;
+}
+
+double MSDevice_Messenger::getGroupLength() {
+    return groupData.nMembers==0? 0:
+           myHolder.getPositionOnLane() - groupData.memberData[groupData.nMembers-1]->vehicle->getPositionOnLane();
+}
+
+void MSDevice_Messenger::setCanJoin(bool canJoin) {
+    groupData.canJoin = canJoin;
+}
+
+void MSDevice_Messenger::notifyMemberLC() {
+    ++nChanged;
+    if (nChanged == groupData.nMembers) {
+        nChanged = 0;
+        MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
+        smartLaneCh.wholeGroupChanged();
+    }
 }
 
 /****************************************************************************/
