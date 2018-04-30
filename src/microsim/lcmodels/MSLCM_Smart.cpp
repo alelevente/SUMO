@@ -135,10 +135,12 @@ myChangeProbThresholdLeft(0.2 / MAX2(NUMERICAL_EPS, mySpeedGainParam)) {
     required.laneOffset = 0;
     required.lane = NULL;
     required.result = 0;
+	followerGroupLeader = NULL;
 }
 
 MSLCM_Smart::~MSLCM_Smart() {
-	changed();
+	//Kell ez ide?
+	//changed();
 }
 
 void MSLCM_Smart::requestChange(int direction){
@@ -1107,9 +1109,11 @@ MSLCM_Smart::changed() {
 	myVSafes.clear();
 	myDontBrake = false;
 
-	if (smartLeader!=NULL) {
-		getMessengerDeviceFromVehicle((SUMOVehicle*) &(smartLeader->myVehicle))->notifyMemberLC();
-	}
+	try {
+		if (smartLeader != NULL) {
+			getMessengerDeviceFromVehicle((SUMOVehicle *) &(smartLeader->myVehicle))->notifyMemberLC();
+		}
+	} catch (...) {}
 
     if (required.result!=0) {
         libsumo::Vehicle::setSpeed(myVehicle.getID(), -1);

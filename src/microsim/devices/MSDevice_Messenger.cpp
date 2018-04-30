@@ -46,6 +46,8 @@
 #include <libsumo/VehicleType.h>
 #include <microsim/lcmodels/MSLCM_Smart.h>
 #include <microsim/cfmodels/MSCFModel_Smart.h>
+#include <microsim/devices/Markers/EntryMarker.h>
+#include <libsumo/Simulation.h>
 #include "Messages/helper.h"
 #include "Markers/MarkerSystem.h"
 
@@ -194,6 +196,33 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
     }
     if (flag>0) flag--;
 
+    if (judgeFlag>0) {
+        double time;
+        if (groupData.nMembers != 0) {
+            time = libsumo::Vehicle::getDrivingDistance(groupData.memberData[groupData.nMembers-1]->vehicle->getID(),
+                                                        myHolder.getEdge()->getID(), myHolder.getPositionOnLane(),
+                                                        myHolder.getLane()->getIndex());
+            time /= groupData.memberData[groupData.nMembers-1]->vehicle->getSpeed();
+        }
+        time += (myHolder.getEdge()->getLength() - myHolder.getPositionOnLane())/myHolder.getSpeed() + 3;
+        if (judgeFlag == 1) actualJudge->reportComing(&myHolder, groupData.nMembers, time,
+                                                      libsumo::Simulation::getCurrentTime()/1000 +
+                                                      (myHolder.getLane()->getLength() - myHolder.getPositionOnLane()) /
+                                                      myHolder.getSpeed(),
+                                                      entryName, exitMarker->getMarkerID());
+        --judgeFlag;
+    }
+
+    else {
+        if (groupData.groupLeader == &myHolder && actualJudge != NULL && needToKnowIfCanPass && !iCanPass) {
+            iCanPass = actualJudge->canIPass(&myHolder);
+            if (iCanPass) libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getEdge()->getSpeedLimit()*0.6);
+            //approaching perimeter of the junction:
+            if (!iCanPass && myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 30) {
+                libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getSpeed() / 2);
+            }
+        }
+    }
 
 #ifdef debug
 
@@ -214,8 +243,10 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
 #ifdef PROBA
             //libsumo::Vehicle::setLaneChangeMode(myHolder.getID(),  128+64 + 2+1);
 #endif
-            std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(result);
+            std::vector<ExitMarker*>* exitMarkers = static_cast< std::vector<ExitMarker*> *>(((EntryMarkerAnswer*)result)->exitMarkers);
             exitMarker = NULL;
+            actualJudge = ((EntryMarkerAnswer*)result)->judge;
+
             for (auto i = exitMarkers->begin(); i!=exitMarkers->end(); ++i){
                 if (veh.getRoute().contains((*i)->getPosition())) exitMarker = (*i);
             }
@@ -236,6 +267,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
 bool
 MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveReminder::Notification reason, const MSLane* /* enteredLane */) {
     //std::cout << "device '" << getID() << "' notifyLeave: reason=" << reason << " currentEdge=" << veh.getEdge()->getID() << "\n";
+    if (reason != 1) return true;
 
     /*LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
     message -> processMessage();
@@ -250,6 +282,9 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
             GroupMessageHandler::tryToLeave(groupData.groupLeader, &veh);
         } else if (groupData.groupLeader == &veh) {         //Leader left the entryMarker
             groupData.canJoin = false;
+            needToKnowIfCanPass = true;
+            judgeFlag = 2;
+            entryName = myHolder.getEdge()->getID();
         }
     }
 
@@ -332,7 +367,8 @@ ExitMarker* MSDevice_Messenger::getExitMarker() {
 }
 
 bool MSDevice_Messenger::isAbleToJoin(SUMOVehicle *who) {
-    return (groupData.nMembers < MAX_GROUP_MEMBERS && groupData.canJoin);
+    return (groupData.nMembers < MAX_GROUP_MEMBERS && groupData.canJoin &&
+            (myHolder.getPositionOnLane() - who->getPositionOnLane())<100);
 }
 
 void MSDevice_Messenger::resetFlag() {
@@ -382,6 +418,8 @@ inline void GroupData::clear() {
 
 void MSDevice_Messenger::newGroup() {
     groupData.clear();
+    iCanPass = false;
+    needToKnowIfCanPass = false;
 #ifdef PROBA
     libsumo::Vehicle::setSpeedMode(myHolder.getID(), 16+8+4+2+1);
     libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
@@ -434,6 +472,9 @@ void MSDevice_Messenger::finishGroup() {
 #ifdef debug
     std::cout << "Csoportbontas." << std::endl;
 #endif
+    actualJudge->iCrossed(&myHolder);
+    needToKnowIfCanPass = false;
+
     MSDevice_Messenger* other;
     libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
     MSLCM_Smart* smartLane = (MSLCM_Smart*) &(((MSVehicle*)&myHolder)->getLaneChangeModel());
@@ -442,6 +483,7 @@ void MSDevice_Messenger::finishGroup() {
         other = getMessengerDeviceFromVehicle((*i)->vehicle);
         other->groupData.clear();
         other->resetOriginalColor();
+        other->actualJudge = NULL;
         libsumo::Vehicle::setSpeed(other->myHolder.getID(), -1);
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
         smartLaneCh.requestChange(-1);

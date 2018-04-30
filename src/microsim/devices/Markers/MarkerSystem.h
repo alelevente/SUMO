@@ -22,7 +22,7 @@ public:
     static MarkerSystem& getInstance();
     BaseMarker* findMarkerByID(const std::string& ID);
     static inline bool isMarkerID(const std::string& ID);
-
+    const std::map<std::string, BaseMarker*>& getMarkerMap();
 };
 
 #endif //SUMO_MARKERSYSTEM_H

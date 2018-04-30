@@ -25,7 +25,7 @@ MarkerSystem::MarkerSystem(){
             str = (*i)->getID();
             edge = *i;
             if (str.compare(6, 5, "Entry") == 0) {
-                newMarker = new EntryMarker(str, edge);
+                newMarker = new EntryMarker(str, edge, markerMap);
 
             } else if (str.compare(6,4,"Exit") == 0) {
                 newMarker = new ExitMarker(str, edge);
@@ -83,5 +83,9 @@ std::vector<ExitMarker*> MarkerSystem::findExitMarkerstoEntry(const std::string&
         }
     }
     return answer;
+}
+
+const std::map<std::string, BaseMarker*>& MarkerSystem::getMarkerMap() {
+    return markerMap;
 }
 

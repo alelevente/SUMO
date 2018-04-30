@@ -33,6 +33,7 @@
 #include <microsim/devices/Messages/Message.h>
 #include <microsim/devices/Messages/GroupMessages.h>
 #include <microsim/devices/Markers/ExitMarker.h>
+#include <microsim/devices/Judge/Judge.h>
 
 static const double MAX_DISTANCE=100;
 static const int MAX_GROUP_MEMBERS=15;
@@ -217,6 +218,10 @@ private:
     int flag;
     SUMOVehicle* letInVechs[10];
     int nLetInVechs = 0, nChanged = 0;
+    Judge* actualJudge;
+    bool iCanPass = false, needToKnowIfCanPass = false;
+    int judgeFlag = 0;
+    std::string entryName;
 
 private:
     void resetOriginalColor();
