@@ -32,7 +32,7 @@ import de.uniluebeck.itm.tcpip.Storage;
 
 /**
  * Represents a TraCI messages used to send {@link Command}s from the client to
- * server (i.e. requests). After construction, the commands are appended one
+ * server (i.e. conflictStore). After construction, the commands are appended one
  * after one with {@link #append(Command)}. The whole message, along with its
  * length header, can be then retrieved in a serialized form via the
  * {@link #writeTo(DataOutputStream)} method.

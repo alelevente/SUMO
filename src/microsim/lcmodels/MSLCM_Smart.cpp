@@ -1368,10 +1368,10 @@ MSVehicle** firstBlocked) {
 			ret = ret | LCA_STAY | LCA_STRATEGIC;
 		}
 	}
-	// check for overriding TraCI requests
+	// check for overriding TraCI conflictStore
 	ret = myVehicle.influenceChangeDecision(ret);
 	if ((ret & lcaCounter) != 0) {
-		// we are not interested in traci requests for the opposite direction here
+		// we are not interested in traci conflictStore for the opposite direction here
 		ret &= ~(LCA_TRACI | lcaCounter | LCA_URGENT);
 	}
 

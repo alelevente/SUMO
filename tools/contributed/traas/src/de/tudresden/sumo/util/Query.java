@@ -61,7 +61,7 @@ public abstract class Query extends Observable {
 
 	/**
 	 * Like {@link #doQuery(RequestMessage)}; in addition, verifies that all
-	 * responses are successful and and the statuses match the requests.
+	 * responses are successful and and the statuses match the conflictStore.
 	 * @param reqMsg
 	 * @return the verified response message
 	 * @throws IOException

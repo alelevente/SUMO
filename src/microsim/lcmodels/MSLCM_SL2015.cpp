@@ -2546,7 +2546,7 @@ MSLCM_SL2015::checkStrategicChange(int ret,
         }
     }
 
-    // check for overriding TraCI requests
+    // check for overriding TraCI conflictStore
 #if defined(DEBUG_STRATEGIC_CHANGE) || defined(DEBUG_TRACI)
     if (gDebugFlag2) {
         std::cout << SIMTIME << " veh=" << myVehicle.getID() << " ret=" << ret;

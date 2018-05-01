@@ -66,7 +66,7 @@ homepage.
 Bugs
 ----
 
-Please use for bugs and requests the [GitHub bug tracking tool](https://github.com/DLR-TS/sumo/issues)
+Please use for bugs and conflictStore the [GitHub bug tracking tool](https://github.com/DLR-TS/sumo/issues)
 or file them to the list sumo-user@eclipse.org. Before
 filing a bug, please consider to check with a current repository checkout
 whether the problem has already been fixed.

@@ -1194,7 +1194,7 @@ public:
     enum LaneChangeMode {
         LC_NEVER      = 0,  // lcModel shall never trigger changes at this level
         LC_NOCONFLICT = 1,  // lcModel may trigger changes if not in conflict with TraCI request
-        LC_ALWAYS     = 2   // lcModel may always trigger changes of this level regardless of requests
+        LC_ALWAYS     = 2   // lcModel may always trigger changes of this level regardless of conflictStore
     };
 
 

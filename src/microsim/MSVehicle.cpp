@@ -379,7 +379,7 @@ MSVehicle::Influencer::influenceChangeDecision(const SUMOTime currentTime, const
             WRITE_WARNING("Lane change model did not provide a reason for changing (state=" + toString(state) + ", time=" + time2string(currentTime) + "\n");
         }
         if (mode == LC_NEVER) {
-            // cancel all lcModel requests
+            // cancel all lcModel conflictStore
             state &= ~LCA_WANTS_LANECHANGE_OR_STAY;
             state &= ~LCA_URGENT;
         } else if (mode == LC_NOCONFLICT && changeRequest != REQUEST_NONE) {
@@ -392,11 +392,11 @@ MSVehicle::Influencer::influenceChangeDecision(const SUMOTime currentTime, const
                 state &= ~LCA_URGENT;
             }
         } else if (mode == LC_ALWAYS) {
-            // ignore any TraCI requests
+            // ignore any TraCI conflictStore
             return state;
         }
     }
-    // apply traci requests
+    // apply traci conflictStore
     if (changeRequest == REQUEST_NONE) {
         return state;
     } else {
@@ -2437,7 +2437,7 @@ MSVehicle::processLinkAproaches(double& vSafe, double& vSafeMin, double& vSafeMi
 
     }
 
-    // vehicles inside a roundabout should maintain their requests
+    // vehicles inside a roundabout should maintain their conflictStore
     if (myLane->getEdge().isRoundabout()) {
         myHaveToWaitOnNextLink = false;
     }
@@ -3400,7 +3400,7 @@ MSVehicle::checkRewindLinkLanes(const double lengthsInFront, DriveItemVector& lf
                 //removalBegin = i;
             }
         }
-        // abort requests
+        // abort conflictStore
         if (removalBegin != -1 && !(removalBegin == 0 && myLane->getEdge().isInternal())) {
             while (removalBegin < (int)(lfLinks.size())) {
                 const double brakeGap = getCarFollowModel().brakeGap(myState.mySpeed, getCarFollowModel().getMaxDecel(), 0.);

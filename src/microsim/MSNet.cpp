@@ -231,7 +231,7 @@ MSNet::closeBuilding(const OptionsCont& oc, MSEdgeControl* edges, MSJunctionCont
     myStateDumpPrefix = oc.getString("save-state.prefix");
     myStateDumpSuffix = oc.getString("save-state.suffix");
 
-    // set requests/responses
+    // set conflictStore/responses
     myJunctions->postloadInitContainer();
 
     // initialise performance computation

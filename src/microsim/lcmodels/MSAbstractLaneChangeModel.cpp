@@ -683,14 +683,14 @@ MSAbstractLaneChangeModel::checkTraCICommands() {
                 }
             }
             if (myVehicle.hasInfluencer()) {
-                // lane change requests override sublane change requests
+                // lane change conflictStore override sublane change conflictStore
                 myVehicle.getInfluencer().resetLatDist();
             }
 
         }
         setOwnState(newstate);
     } else {
-        // Check for sublane change requests
+        // Check for sublane change conflictStore
         if (myVehicle.hasInfluencer() && myVehicle.getInfluencer().getLatDist() != 0) {
             const double maneuverDist = myVehicle.getInfluencer().getLatDist();
             myVehicle.getLaneChangeModel().setManeuverDist(maneuverDist);

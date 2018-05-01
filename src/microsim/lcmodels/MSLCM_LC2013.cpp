@@ -1334,7 +1334,7 @@ MSLCM_LC2013::_wantsChange(
             ret = ret | LCA_STAY | LCA_STRATEGIC;
         }
     }
-    // check for overriding TraCI requests
+    // check for overriding TraCI conflictStore
 #ifdef DEBUG_WANTS_CHANGE
     if (DEBUG_COND) {
         std::cout << STEPS2TIME(currentTime) << " veh=" << myVehicle.getID() << " ret=" << ret;
@@ -1342,7 +1342,7 @@ MSLCM_LC2013::_wantsChange(
 #endif
     ret = myVehicle.influenceChangeDecision(ret);
     if ((ret & lcaCounter) != 0) {
-        // we are not interested in traci requests for the opposite direction here
+        // we are not interested in traci conflictStore for the opposite direction here
         ret &= ~(LCA_TRACI | lcaCounter | LCA_URGENT);
     }
 #ifdef DEBUG_WANTS_CHANGE

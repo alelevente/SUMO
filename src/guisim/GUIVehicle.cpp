@@ -302,7 +302,7 @@ GUIVehicle::drawAction_drawLinkItems(const GUIVisualizationSettings& s) const {
                                            (*i).myArrivalTime, (*i).myArrivalSpeed, (*i).getLeaveSpeed(), getVehicleType().getLength());
             drawLinkItem(p, (*i).myArrivalTime, leaveTime, s.vehicleName.size / s.scale);
             // the time slot that ego vehicle uses when checking opened may
-            // differ from the one it requests in setApproaching
+            // differ from the one it conflictStore in setApproaching
             MSLink::ApproachingVehicleInformation avi = (*i).myLink->getApproaching(this);
             assert(avi.arrivalTime == (*i).myArrivalTime && avi.leavingTime == leaveTime);
             UNUSED_PARAMETER(avi); // only used for assertion

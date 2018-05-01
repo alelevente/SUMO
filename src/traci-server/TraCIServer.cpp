@@ -257,7 +257,7 @@ TraCIServer::vehicleStateChanged(const SUMOVehicle* const vehicle, MSNet::Vehicl
 void
 TraCIServer::checkClientOrdering() {
 #ifdef DEBUG_MULTI_CLIENTS
-    std::cout << "Checking client order requests." << std::endl;
+    std::cout << "Checking client order conflictStore." << std::endl;
 #endif
     // check for SET_ORDER commands queued by connected clients
     // In multiclient cas it is mandatory that SET_ORDER  is sent as the first command (or directly after GET_VERSION)
@@ -321,9 +321,9 @@ TraCIServer::checkClientOrdering() {
 
 void
 TraCIServer::processReorderingRequests() {
-    // Process reordering requests
+    // Process reordering conflictStore
     if (mySocketReorderRequests.size() > 0) {
-        // process reordering requests
+        // process reordering conflictStore
         std::map<int, SocketInfo*>::const_iterator i = mySocketReorderRequests.begin();
         std::map<int, SocketInfo*>::iterator j;
 #ifdef DEBUG_MULTI_CLIENTS
@@ -331,7 +331,7 @@ TraCIServer::processReorderingRequests() {
         for (j = mySockets.begin(); j != mySockets.end(); ++j) {
             std::cout << "      " << j->first << ": " << j->second->socket << "\n";
         }
-        std::cout << "Reordering requests:\n";
+        std::cout << "Reordering conflictStore:\n";
         for (i = mySocketReorderRequests.begin(); i != mySocketReorderRequests.end(); ++i) {
             std::cout << "      Socket " << i->second->socket << " -> " << i->first << "\n";
         }
