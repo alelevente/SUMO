@@ -167,16 +167,21 @@ LaneChangeModel MSLCM_Smart::getModelID() const {
 MSVehicle* MSLCM_Smart::getFollowerGroupLeader(const MSLane& neighLane, double myPosOnLane){
 	MSLane* lane = const_cast<MSLane*>(&neighLane);
 	std::vector<MSVehicle*> vehs = lane->getVehiclesSecure();
-	auto i = vehs.begin();
-	while (i != vehs.end()){
+	auto i = vehs.end();
+	bool ok = true;
+	while (ok && vehs.size()!=0){
+		--i;
+		std::cout << (*i)->getID() << " ";
+		if (i == vehs.begin()) ok = false;
 		if ((*i)->getPositionOnLane() < myPosOnLane
 			&& getMessengerDeviceFromVehicle(*i)->getLeader() == *i) {
 			lane->releaseVehicles();
 			return *i;
 		}
-		++i;
 	}
 	lane->releaseVehicles();
+	std::cout << std::endl;
+
 	return NULL;
 }
 
@@ -210,6 +215,7 @@ MSVehicle** firstBlocked) {
 				//make it urgent
 				result |= LCA_URGENT;
 				//requesting a "let in":
+				//std::cout << myVehicle.getID() << "has to change lane." << std::endl;
 				followerGroupLeader = getFollowerGroupLeader(neighLane, myVehicle.getPositionOnLane());
 				if (followerGroupLeader != NULL) {
 					std::cout << myVehicle.getID() << " beengedést kért: " << followerGroupLeader->getID() << "-tól/től"
@@ -224,13 +230,15 @@ MSVehicle** firstBlocked) {
 					delete letUsIn;
 				}
 				libsumo::Vehicle::setSpeed(myVehicle.getID(), myVehicle.getEdge()->getSpeedLimit() * 0.5);
-
-				required.laneOffset = laneOffset;
-				required.result = result;
+				if (followerGroupLeader != NULL || neighFollow.first == NULL) {
+					required.laneOffset = laneOffset;
+					required.result = result;
+				}
 				result = 0;
 			} else result = 0;
 		} else {
-			if (laneOffset == required.laneOffset && (followerGroupLeader == NULL || (neighFollow.first == followerGroupLeader
+			if (laneOffset == required.laneOffset && (followerGroupLeader == NULL || ((neighFollow.first == followerGroupLeader
+                                                                                       || neighFollow.first == NULL)
 											   && getMessengerDeviceFromVehicle(followerGroupLeader)->canIGetIn(&myVehicle)))){
 
 				//decrease overlapping:
@@ -1112,6 +1120,8 @@ MSLCM_Smart::changed() {
 	try {
 		if (smartLeader != NULL) {
 			getMessengerDeviceFromVehicle((SUMOVehicle *) &(smartLeader->myVehicle))->notifyMemberLC();
+		} else {
+			if (leading) getMessengerDeviceFromVehicle(&myVehicle)->notifyMemberLC();
 		}
 	} catch (...) {}
 
@@ -1123,8 +1133,9 @@ MSLCM_Smart::changed() {
 		steps[actualStep].result = required.result;
 		required.result = 0;
 		required.laneOffset = 0;
+		++actualStep;
     }
-	actualStep++;
+	//++actualStep;
 }
 
 void MSLCM_Smart::wholeGroupChanged() {
@@ -1157,7 +1168,7 @@ MSVehicle** firstBlocked) {
     if (requested == 0){
         int requested = smartLeader -> getLaneChange(myVehicle.getLane(), actualStep);
         if (requested != 0) libsumo::Vehicle::setSpeed(myVehicle.getID(), 0.5*myVehicle.getEdge()->getSpeedLimit());
-		if (smartLeader->followerGroupLeader != neighFollow.first) requested = 0;
+		if (smartLeader->followerGroupLeader!=NULL && smartLeader->followerGroupLeader != neighFollow.first) requested = 0;
         return requested;
     }
 

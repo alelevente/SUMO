@@ -218,7 +218,7 @@ private:
     libsumo::TraCIColor* originalColor;
     int flag;
     SUMOVehicle* letInVechs[10];
-    int nLetInVechs = 0, nChanged = 0;
+    int nLetInVechs = 0, nChanged = 0, hasToLetIn = 0;
     Judge* actualJudge;
     bool iCanPass = false, needToKnowIfCanPass = false;
     int judgeFlag = 0;

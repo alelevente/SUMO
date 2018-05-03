@@ -523,21 +523,24 @@ double MSDevice_Messenger::getMaxSpeed() {
 void MSDevice_Messenger::addLetIn(SUMOVehicle *who, double speed) {
     if (myHolder.getSpeed() > speed) {
         libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
-        std::cout << "Sebesség beállítva: " << speed << " m/s " << myHolder.getID() << std::endl;
+        //std::cout << "Sebesség beállítva: " << speed << " m/s " << myHolder.getID() << std::endl;
     }
     if (nLetInVechs == 10) throw OutOfBoundsException();
-    letInVechs[nLetInVechs++] = who;
+    letInVechs[nLetInVechs] = who;
+    ++nLetInVechs;
 }
 
 bool MSDevice_Messenger::canIGetIn(SUMOVehicle *who) {
-    return letInVechs[nLetInVechs-1]==who;
+    std::cout << who->getID() << " asks if can change. Answer: " << (letInVechs[hasToLetIn]==who) << std::endl;
+    return letInVechs[hasToLetIn]==who;
 }
 
 void MSDevice_Messenger::letInMade(SUMOVehicle *who) {
+    std::cout << who->getID() <<": was let in" << std::endl;
     //someone was let in:
-    --nLetInVechs;
+    ++hasToLetIn;
     //when everyone was let in:
-    if (nLetInVechs == 0) libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
+    if (nLetInVechs == hasToLetIn) libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
 }
 
 int MSDevice_Messenger::getGroupSize() {
@@ -555,7 +558,7 @@ void MSDevice_Messenger::setCanJoin(bool canJoin) {
 
 void MSDevice_Messenger::notifyMemberLC() {
     ++nChanged;
-    if (nChanged == groupData.nMembers) {
+    if (nChanged > groupData.nMembers) {
         nChanged = 0;
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
         smartLaneCh.wholeGroupChanged();
