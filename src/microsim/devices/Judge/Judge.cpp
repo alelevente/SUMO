@@ -343,7 +343,7 @@ std::vector<ConflictClass*>* Judge::getPossibleConflictClasses(const PassRequest
             if ((*i)->directions[j] == 1 && conflictMatrix[j][dir]) ok = false;
         }
         if (ok) {
-            std::cout << (*i)->requests->at(0)->groupLeader->getID() <<" ";
+            //std::cout << (*i)->requests->at(0)->groupLeader->getID() <<" ";
             answ->push_back(*i);
         }
     }
