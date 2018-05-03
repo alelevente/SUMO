@@ -210,6 +210,7 @@ public:
     double getGroupLength();
     void setCanJoin(bool canJoin);
     void notifyMemberLC();
+    ConflictClass* actualCC = NULL;
 
 private:
     ExitMarker* exitMarker;

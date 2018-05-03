@@ -7,11 +7,23 @@
 
 #include <microsim/devices/Markers/BaseMarker.h>
 #include "utils/vehicle/SUMOVehicle.h"
+#include <microsim/MSVehicle.h>
 //#include "microsim/devices/Markers/ExitMarker.h"
 //#include "microsim/devices/Markers/EntryMarker.h"
 
 #define DEFAULT_PASS_TIME 3
 #define DEFAULT_COME_IN_TIME 10
+#define DEFAULT_CC_SIZE 15
+#define DEFAULT_RECHECK_TIME 10
+
+struct PassRequest;
+
+struct ConflictClass{
+    int nMembers = 0, nPassed = 0;
+    bool directions[100];
+    bool canJoin = true;
+    std::vector<PassRequest*> *requests;
+};
 
 struct PassRequest{
     SUMOVehicle* groupLeader;
@@ -19,7 +31,10 @@ struct PassRequest{
     int groupSize;
     std::string* directon;
     std::vector<SUMOVehicle*> heldBy;
+    ConflictClass* myConflictClass;
 };
+
+
 
 class Judge{
 public:
@@ -30,6 +45,7 @@ public:
     const std::string& getName();
     Judge(const std::string& path, const std::string& name);
     ~Judge();
+    bool canIPass(SUMOVehicle* groupLeader);
 
 private:
     std::vector<PassRequest*> conflictStore, decidedStore;
@@ -41,7 +57,7 @@ private:
     int passTime = DEFAULT_PASS_TIME, comeInTime = DEFAULT_COME_IN_TIME;
     int state = 0;
 
-    bool canIPass(SUMOVehicle* groupLeader);
+
     void initializeConflictMatrix(const std::string& path);
     int isThereConflict(SUMOVehicle *groupLeader, const std::vector<PassRequest *> &requests);
     inline int getReqByLeader(SUMOVehicle *groupLeader, const std::vector<PassRequest *> requests);
@@ -51,9 +67,17 @@ private:
     inline double calculateSumOfPassFunctions(const std::vector<PassRequest*>* passes, int T);
     inline bool timeConflict(SUMOTime t1, SUMOTime d1, SUMOTime t2, SUMOTime d2);
     inline int howManyCanPass(const PassRequest* request, int deadline);
-    std::vector<PassRequest*>* getRequestsByDirection(const std::vector<PassRequest*>* passRequests, const std::string* direction)
+    std::vector<PassRequest*>* getRequestsByDirection(const std::vector<PassRequest*>* passRequests, const std::string* direction);
     bool willMakeAnotherConflict(SUMOVehicle *leader1, SUMOVehicle *leader2);
     inline void resetCounterToZero();
+
+    std::vector<ConflictClass*> conflictClasses;
+    int actualConflictClass = -1;
+    int lastCheck = 0;
+    void recheck();
+    std::vector<ConflictClass*>* getPossibleConflictClasses(const PassRequest& request);
+    int getOptimalConflictClass(const PassRequest& request);
+
 };
 
 #endif //SUMO_JUDGE_H

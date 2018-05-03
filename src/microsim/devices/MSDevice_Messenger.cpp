@@ -216,10 +216,21 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
     else {
         if (groupData.groupLeader == &myHolder && actualJudge != NULL && needToKnowIfCanPass && !iCanPass) {
             iCanPass = actualJudge->canIPass(&myHolder);
-            if (iCanPass) libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getEdge()->getSpeedLimit()*0.6);
+            if (iCanPass) {
+                libsumo::Vehicle::setSpeedMode(myHolder.getID(), 23);
+                libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getEdge()->getSpeedLimit()*0.6);
+                for (auto i = groupData.memberData.begin(); i != groupData.memberData.end(); ++i) {
+                    //if ((*i)->vehicle->getSpeed() == 0) libsumo::Vehicle::resume((*i)->vehicle->getID());
+                    libsumo::Vehicle::setSpeedMode((*i)->vehicle->getID(), 23);
+                }
+            }
             //approaching perimeter of the junction:
             if (!iCanPass && myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 30) {
+                std::cout << myHolder.getID() <<": speed changed (cause: cant pass)" << std::endl;
                 libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getSpeed() / 2);
+                if (myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 7.5) {
+                    libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
+                }
             }
         }
     }
@@ -501,6 +512,7 @@ void MSDevice_Messenger::resetOriginalColor() {
 
 
 void MSDevice_Messenger::setVehicleSpeed(double speed) {
+    std::cout << myHolder.getID() << ": Speed changed by request" << std::endl;
     libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
 }
 
