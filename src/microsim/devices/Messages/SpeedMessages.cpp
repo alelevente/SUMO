@@ -25,7 +25,8 @@ void LetUsIn::setContent(int groupLength) {
 void LetUsIn::processMessage() {
     MSDevice_Messenger* messenger = getMessengerDeviceFromVehicle(receiver);
     double vMax = messenger->getMaxSpeed();
-    double v = 0.5*vMax - (groupLength+SAFETY_DISTANCE)/ESTIMATED_LC_TIME;
+    //double v = 0.5*vMax - (groupLength+SAFETY_DISTANCE)/ESTIMATED_LC_TIME;
+    double v = 0.125*vMax;
     v = v>0? v: 0;
     messenger->addLetIn(sender, v);
 }

@@ -211,6 +211,7 @@ public:
     void setCanJoin(bool canJoin);
     void notifyMemberLC();
     ConflictClass* actualCC = NULL;
+    void debugJudgeSetColor(const libsumo::TraCIColor& color);
 
 private:
     ExitMarker* exitMarker;
@@ -220,9 +221,10 @@ private:
     SUMOVehicle* letInVechs[10];
     int nLetInVechs = 0, nChanged = 0, hasToLetIn = 0;
     Judge* actualJudge;
-    bool iCanPass = false, needToKnowIfCanPass = false;
+    bool iCanPass = false, needToKnowIfCanPass = false, queuedToLetIn = false;
+    bool iMustPass = false; //if we entered the junction, we must leave it as soon as possible
     int judgeFlag = 0;
-    std::string entryName;
+    std::string entryName, junctionName;
 
 private:
     void resetOriginalColor();

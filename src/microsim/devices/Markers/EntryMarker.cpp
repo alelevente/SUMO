@@ -3,6 +3,7 @@
 //
 
 #include <utils/vehicle/SUMOVehicle.h>
+#include <microsim/devices/Messages/helper.h>
 #include "EntryMarker.h"
 #include "MarkerSystem.h"
 
@@ -26,18 +27,6 @@ Judge* findJudgeByName(const std::string& name, const std::map<std::string, Base
         }
     }
     return NULL;
-}
-
-std::string getJunctionName(const std::string& markerId){
-    int i;
-    std::string str;
-    for (i = 0; markerId[i]!='_'; ++i);
-    ++i;
-    while (markerId[i]!='_') {
-        str += markerId[i];
-        ++i;
-    }
-    return str;
 }
 
 EntryMarker::EntryMarker(std::string markerID, MSEdge *position, const std::map<std::string, BaseMarker*>& markerMap):

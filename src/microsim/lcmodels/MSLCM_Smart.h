@@ -295,8 +295,9 @@ public:
 
 	void setLeading(bool leading);
 
-private:
 
+private:
+	int leadStartTime;
 	static MSVehicle* getFollowerGroupLeader(const MSLane& neighLane, double myPosOnLane);
 };
 

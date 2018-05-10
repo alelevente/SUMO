@@ -15,6 +15,7 @@
 #define DEFAULT_COME_IN_TIME 10
 #define DEFAULT_CC_SIZE 15
 #define DEFAULT_RECHECK_TIME 10
+#define DEADLOCK_THRESHOLD 20000
 
 struct PassRequest;
 
@@ -23,6 +24,8 @@ struct ConflictClass{
     bool directions[100];
     bool canJoin = true;
     std::vector<PassRequest*> *requests;
+    ConflictClass();
+    ConflictClass(const ConflictClass& rhs);
 };
 
 struct PassRequest{
@@ -48,7 +51,7 @@ public:
     bool canIPass(SUMOVehicle* groupLeader);
 
 private:
-    std::vector<PassRequest*> conflictStore, decidedStore;
+    std::vector<PassRequest*> conflictStore;
     std::string routeName[300];
     int counter[300];
     bool conflictMatrix[300][300];
@@ -56,6 +59,7 @@ private:
     std::string name;
     int passTime = DEFAULT_PASS_TIME, comeInTime = DEFAULT_COME_IN_TIME;
     int state = 0;
+    libsumo::TraCIColor colors[10];
 
 
     void initializeConflictMatrix(const std::string& path);
@@ -75,6 +79,7 @@ private:
     int actualConflictClass = -1;
     int lastCheck = 0;
     void recheck();
+    void antiDeadLock();
     std::vector<ConflictClass*>* getPossibleConflictClasses(const PassRequest& request);
     int getOptimalConflictClass(const PassRequest& request);
 

@@ -26,5 +26,7 @@ public:
 };
 
 MSDevice_Messenger* getMessengerDeviceFromVehicle(SUMOVehicle *vehicle);
+std::string getJunctionName(const std::string& markerId);
+bool compareNames(const std::string& junctionName, const std::string& posName);
 
 #endif //SUMO_HELPER_H
