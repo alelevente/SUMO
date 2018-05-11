@@ -316,6 +316,7 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
     if (groupData.groupLeader!=NULL &&
             compareNames(getMessengerDeviceFromVehicle(groupData.groupLeader)->junctionName,myHolder.getEdge()->getID())) {
         iMustPass = true;
+        actualJudge->reportCome();
     }
 
     /*LeaveGroupMessage* message = new LeaveGroupMessage(&veh, leader, NULL);
@@ -327,13 +328,14 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
         result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onExit(&veh);
         //ExitMarker:
         if (result!=NULL && groupData.groupLeader!=NULL){
-
+            if (actualJudge!=NULL) actualJudge->reportLeave();
             GroupMessageHandler::tryToLeave(groupData.groupLeader, &veh);
         } else if (groupData.groupLeader == &veh) {         //Leader left the entryMarker
             groupData.canJoin = false;
             needToKnowIfCanPass = true;
             judgeFlag = 2;
             entryName = myHolder.getEdge()->getID();
+            //if (actualJudge!=NULL) actualJudge->reportLeave();
         }
     }
 
@@ -397,12 +399,18 @@ void MSDevice_Messenger::sendBroadcastMessage(Message *message) {
 
 void MSDevice_Messenger::sendGroupcastMessage(Message *message) {
     MSDevice_Messenger* messenger;
-    if (!(groupData.groupLeader!=&myHolder)) throw "Cannot send groupcast message, since it is not a leader.";
+    if (groupData.groupLeader!=&myHolder) {
+        std::cerr << "Cannot send groupcast message, since it is not a leader." << std::endl;
+        throw "Cannot send groupcast message, since it is not a leader.";
+    }
+    //std::cout << "Message sent from "<< myHolder.getID() <<" to: ";
     for (int i=0; i < groupData.nMembers; ++i){
         //messenger = getMessengerDeviceFromVehicle(group.at(i));
         message->setReceiver(groupData.memberData[i]->vehicle);
+        std::cout << groupData.memberData[i]->vehicle->getID() << ", ";
         message->processMessage();
     }
+    std::cout << std::endl;
 }
 
 
@@ -471,6 +479,8 @@ void MSDevice_Messenger::newGroup() {
     iCanPass = false;
     needToKnowIfCanPass = false;
     iMustPass = false;
+    nLetInVechs = 0; hasToLetIn = 0;
+    for (int i=0; i<10; ++i) letInVechs[i] = NULL;
 #ifdef PROBA
     libsumo::Vehicle::setSpeedMode(myHolder.getID(), 16+8+4+2+1);
     libsumo::Vehicle::setSpeed(myHolder.getID(), 0.66*myHolder.getLane()->getVehicleMaxSpeed(&myHolder));
@@ -586,8 +596,8 @@ bool MSDevice_Messenger::canIGetIn(SUMOVehicle *who) {
             libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(),
                                        lastCar->getEdge()->getSpeedLimit() * 0.125);
         } else {*/
-            libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
-            libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), myHolder.getEdge()->getSpeedLimit() * 0.25);
+            //libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
+            //libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), myHolder.getEdge()->getSpeedLimit() * 0.25);
                                        //lastCar->getEdge()->getSpeedLimit() * 0.25);
         //}
     }

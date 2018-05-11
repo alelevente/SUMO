@@ -16,6 +16,7 @@
 //#include <microsim/MSVehicleControl.h>
 #include <guisim/GUIBaseVehicle.h>
 #include <FXColorList.h>
+#include <microsim/lcmodels/MSLCM_Smart.h>
 #include "libsumo/Vehicle.h"
 #include "helper.h"
 
@@ -58,6 +59,18 @@ void JoinGroupMessage::processMessage() {
     delete color;
     delete content;
     delete welcomeMessage;*/
+}
+
+LanechangeMessage::LanechangeMessage(SUMOVehicle *sender, SUMOVehicle *receiver, LanechangeContent *content):
+    Message(sender, receiver, NULL){
+    this->content = content;
+}
+
+LanechangeMessage::~LanechangeMessage() {}
+
+void LanechangeMessage::processMessage() {
+    MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)receiver)->getLaneChangeModel();
+    smartLaneCh.setLCAction(content->laneOffset, content->result);
 }
 
 

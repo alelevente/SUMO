@@ -11,6 +11,7 @@
 
 Judge::Judge(const std::string &path, const std::string &name) {
     initializeConflictMatrix(path);
+    inside = 0;
     this->name = name;
 
 
@@ -233,6 +234,10 @@ bool Judge::timeConflict(SUMOTime t1, SUMOTime d1, SUMOTime t2, SUMOTime d2) {
 }
 
 void Judge::iCrossed(SUMOVehicle *groupLeader) {
+    if (crossFlag) {
+        canChange = true;
+        crossFlag = false;
+    }
     //std::cout << groupLeader->getID() << ": we crossed." << std::endl;
 
     int idx = getReqByLeader(groupLeader, this->conflictStore);
@@ -243,18 +248,22 @@ void Judge::iCrossed(SUMOVehicle *groupLeader) {
     conflictStore.erase(i);
 
     ConflictClass* cc = req->myConflictClass;
-    auto j = cc->requests->begin();
-    //std::cout << "Conflict class: ";
-    for (int i=0; i<cc->requests->size(); ++i){
-        if ((*j) == req) cc->requests->erase(j);
-        //std::cout << (*j)->groupLeader->getID() <<", ";
-        ++j;
+    if (cc != NULL && cc->requests != NULL) {
+        auto j = cc->requests->begin();
+        //std::cout << "Conflict class: ";
+        for (int i = 0; i < cc->requests->size(); ++i) {
+            if ((*j) == req) cc->requests->erase(j);
+            //std::cout << (*j)->groupLeader->getID() << ", ";
+            ++j;
+        }
+        //std::cout << std::endl;
+        //std::cout << "npassed: " << cc->nPassed << " nmembers: " << cc->nMembers << std::endl;
+        //cc->requests->erase(j);
+        //std::remove(cc->requests->begin(), cc->requests->end(), req);
+        cc->nPassed += 1;
+        if (cc->requests->size()==0) terminateCC(cc);
+        getMessengerDeviceFromVehicle(groupLeader)->actualCC = NULL;
     }
-    //std::cout << std::endl;
-    //cc->requests->erase(j);
-    //std::remove(cc->requests->begin(), cc->requests->end(), req);
-    cc->nPassed += 1;
-    getMessengerDeviceFromVehicle(groupLeader)->actualCC = NULL;
 
     /*for (i = conflictStore.begin(); i != conflictStore.end(); ++i) {
         std::remove((*i)->heldBy.begin(), (*i)->heldBy.end(), groupLeader);
@@ -455,22 +464,23 @@ void resetCarsSpeed(const std::vector<PassRequest*>& passRequests){
 }
 
 void Judge::recheck() {
-    //std::cout << "Rechecking..." << std::endl;
+    std::cout << "Rechecking... "<< inside << std::endl;
     int T = libsumo::Simulation::getCurrentTime();
+    canChange = inside == 0;
     lastCheck = T/1000;
     ConflictClass* maxPos;
     double max =0, akt;
     int j;
-    //std::cout << "Results: ";
+    std::cout << name << " results: ";
     for (j=0; j < conflictClasses.size(); ++j){
         akt = calculateSumOfPassFunctions(conflictClasses.at(j)->requests, T/1000);
-        //std::cout << akt << " ";
+        std::cout << akt << " ";
         if (akt>max) {
             max = akt;
             maxPos = conflictClasses.at(j);
         }
     }
-    //std::cout << std::endl;
+    std::cout << std::endl;
     if (max>DEADLOCK_THRESHOLD && actualConflictClass != -1) {
         antiDeadLock();
         return;
@@ -484,53 +494,50 @@ void Judge::recheck() {
         //conflictClasses.at(actualConflictClass)->canJoin = false;
         //std::cout << "rechecked: "<< conflictClasses[actualConflictClass]->nMembers <<"; " << conflictClasses[actualConflictClass]->nPassed << std::endl;
         //std::cout << conflictClasses[actualConflictClass]->requests->size() << std::endl;
-        for (auto i = conflictClasses[actualConflictClass]->requests->begin(); i!=conflictClasses[actualConflictClass]->requests->end(); ++i){
-            //std::cout << (*i)->groupLeader->getID() << ", ";
-        }
+        /*for (auto i = conflictClasses[actualConflictClass]->requests->begin(); i!=conflictClasses[actualConflictClass]->requests->end(); ++i){
+            std::cout << (*i)->groupLeader->getID() << ", ";
+        }*/
         //std::cout << std::endl;
-        if (conflictClasses.at(actualConflictClass)->nMembers != conflictClasses.at(actualConflictClass)->nPassed) {
+        /*if (conflictClasses.at(actualConflictClass)->nMembers-1 != conflictClasses.at(actualConflictClass)->nPassed) {
             lastCheck = 0;
-        } else {
-            ConflictClass* cc = conflictClasses.at(actualConflictClass);
-            auto i = conflictClasses.begin();
-            while (*i!=cc) ++i;
-            conflictClasses.erase(i);
-            delete cc->requests;
-            for (int j=0; j<conflictClasses.size(); ++j){
-                for (int k=0; k<conflictClasses[j]->requests->size(); ++k){
-                    libsumo::Vehicle::setColor(conflictClasses[j]->requests->at(k)->groupLeader->getID(), colors[j]);
-                    getMessengerDeviceFromVehicle(conflictClasses[j]->requests->at(k)->groupLeader)->debugJudgeSetColor(colors[j]);
-                }
-            }
-            //std::remove(conflictClasses.begin(), conflictClasses.end(), cc);
-            delete cc;
+        } else {*/
+
             for (j=0; j<conflictClasses.size() && conflictClasses.at(j)!=maxPos; ++j);
             if (j == conflictClasses.size()) {
                 actualConflictClass = -1;
                 return;
             }
-            actualConflictClass = j;
-            //std::cout << "Actual CC has changed, currently: " << actualConflictClass << std::endl;
-            for (int j=0; j<conflictClasses.size(); ++j) {
-                resetCarsSpeed(*conflictClasses[j]->requests);
+            if (canChange) {
+                actualConflictClass = j;
+                canChange = false;
+                std::cout << "Actual CC has changed, currently: " << actualConflictClass << std::endl;
+                for (int j=0; j<conflictClasses.size(); ++j) {
+                    resetCarsSpeed(*conflictClasses[j]->requests);
+                }
             }
-        }
+        //}
     } else {
         for (j=0; conflictClasses.at(j)!=maxPos; ++j);
-        actualConflictClass = j;
-        //std::cout << "Actual CC has changed, currently: " << actualConflictClass << std::endl;
-        resetCarsSpeed(*conflictClasses[actualConflictClass]->requests);
+        if (canChange) {
+            actualConflictClass = j;
+            canChange = false;
+
+            //std::cout << "Actual CC has changed, currently: " << actualConflictClass << std::endl;
+            resetCarsSpeed(*conflictClasses[actualConflictClass]->requests);
+        }
     }
 }
 
 void Judge::antiDeadLock() {
     //std::cout << "Antideadlock." << std::endl;
+    crossFlag = true;
     ConflictClass* cc = new ConflictClass(*conflictClasses[actualConflictClass]);
     delete  conflictClasses[actualConflictClass]->requests;
     delete conflictClasses[actualConflictClass];
     conflictClasses[actualConflictClass] = cc;
     for (auto i = cc->requests->begin(); i != cc->requests->end(); ++i) {
         (*i)->tRequestArrived = libsumo::Simulation::getCurrentTime()/1000;
+        (*i)->myConflictClass = cc;
     }
     actualConflictClass = -1;
 }
@@ -551,4 +558,30 @@ ConflictClass::ConflictClass(const ConflictClass & rhs) {
 ConflictClass::ConflictClass() {
     canJoin = true;
     for (int i=0; i<100; ++i) directions[i] = false;
+}
+
+void Judge::terminateCC(ConflictClass *cc) {
+    canChange = true;
+    auto i = conflictClasses.begin();
+    while (*i!=cc) ++i;
+    conflictClasses.erase(i);
+    delete cc->requests;
+    cc->requests = NULL;
+    for (int j=0; j<conflictClasses.size(); ++j){
+        for (int k=0; k<conflictClasses[j]->requests->size(); ++k){
+            //conflictClasses[j]->requests->at(k)->myConflictClass = NULL;
+            libsumo::Vehicle::setColor(conflictClasses[j]->requests->at(k)->groupLeader->getID(), colors[j]);
+            getMessengerDeviceFromVehicle(conflictClasses[j]->requests->at(k)->groupLeader)->debugJudgeSetColor(colors[j]);
+        }
+    }
+    //std::remove(conflictClasses.begin(), conflictClasses.end(), cc);
+    delete cc;
+}
+
+void Judge::reportCome() {
+    ++inside;
+}
+
+void Judge::reportLeave(){
+    --inside;
 }

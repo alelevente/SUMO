@@ -289,12 +289,13 @@ private:
 	MSVehicle* followerGroupLeader;
 	int nChanged = 0;
     Step required;
+    Step sentByLeader;
 
 public:
 	bool isLeading() const;
 
 	void setLeading(bool leading);
-
+    void setLCAction(int laneoffset, int result);
 
 private:
 	int leadStartTime;

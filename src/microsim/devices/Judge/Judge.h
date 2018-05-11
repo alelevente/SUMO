@@ -49,13 +49,17 @@ public:
     Judge(const std::string& path, const std::string& name);
     ~Judge();
     bool canIPass(SUMOVehicle* groupLeader);
+    void reportCome();
+    void reportLeave();
 
 private:
     std::vector<PassRequest*> conflictStore;
     std::string routeName[300];
     int counter[300];
     bool conflictMatrix[300][300];
+    bool canChange = true, crossFlag = false;
     int mtxSize;
+    int inside = 0;
     std::string name;
     int passTime = DEFAULT_PASS_TIME, comeInTime = DEFAULT_COME_IN_TIME;
     int state = 0;
@@ -83,6 +87,7 @@ private:
     std::vector<ConflictClass*>* getPossibleConflictClasses(const PassRequest& request);
     int getOptimalConflictClass(const PassRequest& request);
 
+    void terminateCC(ConflictClass *cc);
 };
 
 #endif //SUMO_JUDGE_H

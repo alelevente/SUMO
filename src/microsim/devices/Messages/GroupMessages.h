@@ -18,10 +18,13 @@ struct RedefineGroupLeaderContent{
     SUMOVehicle* leader;
 };
 
-//todo: welcome: groupleader, color
 struct WelcomeMessageContent{
     libsumo::TraCIColor* color;
     SUMOVehicle* leader;
+};
+
+struct LanechangeContent{
+    int laneOffset, result;
 };
 
 class JoinGroupMessage: public Message{
@@ -62,6 +65,15 @@ public:
 
 private:
     RedefineGroupLeaderContent* content;
+};
+
+class LanechangeMessage: public Message{
+public:
+    LanechangeMessage(SUMOVehicle* sender, SUMOVehicle* receiver, LanechangeContent* content);
+    ~LanechangeMessage();
+    void processMessage();
+private:
+    LanechangeContent* content;
 };
 
 #endif //SUMO_GROUPMESSAGES_H
