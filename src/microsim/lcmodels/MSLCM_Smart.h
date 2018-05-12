@@ -286,14 +286,14 @@ private:
     MSLCM_Smart* smartLeader = NULL;
     int neededStep = 0;
 	bool leading = false;
-	MSVehicle* followerGroupLeader;
+
 	int nChanged = 0;
     Step required;
     Step sentByLeader;
 
 public:
 	bool isLeading() const;
-
+	MSVehicle* followerGroupLeader;
 	void setLeading(bool leading);
     void setLCAction(int laneoffset, int result);
 

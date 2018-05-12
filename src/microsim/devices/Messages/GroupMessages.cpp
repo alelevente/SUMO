@@ -62,11 +62,13 @@ void JoinGroupMessage::processMessage() {
 }
 
 LanechangeMessage::LanechangeMessage(SUMOVehicle *sender, SUMOVehicle *receiver, LanechangeContent *content):
-    Message(sender, receiver, NULL){
+    Message(sender, receiver, (void*)content){
     this->content = content;
 }
 
-LanechangeMessage::~LanechangeMessage() {}
+LanechangeMessage::~LanechangeMessage() {
+    delete content;
+}
 
 void LanechangeMessage::processMessage() {
     MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)receiver)->getLaneChangeModel();

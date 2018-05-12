@@ -201,6 +201,7 @@ const std::vector<MSVehicle::LaneQ>& preb,
 MSVehicle** lastBlocked,
 MSVehicle** firstBlocked) {
 	//flagged
+    if (getMessengerDeviceFromVehicle(&myVehicle)->changeFlag < 4) return 0;
 	if (requested==-100)
 		return 0;
 	int result = 0;
@@ -218,6 +219,7 @@ MSVehicle** firstBlocked) {
 								  lastBlocked, firstBlocked);
 
 			//strategical lane change is neeeded:
+            //if (abs(laneOffset)!=0 && abs(laneOffset)!=1) std::cerr << "Nem oké! " << laneOffset << std::endl;
 			if (result & LCA_WANTS_LANECHANGE && result & LCA_STRATEGIC) {
 				//make it urgent
 				result |= LCA_URGENT;
@@ -225,8 +227,8 @@ MSVehicle** firstBlocked) {
 				//std::cout << myVehicle.getID() << "has to change lane." << std::endl;
 				followerGroupLeader = getFollowerGroupLeader(neighLane, myVehicle.getPositionOnLane());
 				if (followerGroupLeader != NULL) {
-					//std::cout << myVehicle.getID() << " beengedést kért: " << followerGroupLeader->getID() << "-tól/től"
-					//		  << std::endl;
+					std::cout << myVehicle.getID() << " beengedést kért: " << followerGroupLeader->getID() << "-tól/től"
+							  << std::endl;
 
                     MSDevice_Messenger* messenger = getMessengerDeviceFromVehicle(&myVehicle);
                     double groupLength = messenger->getGroupLength()+20.0;
@@ -243,10 +245,10 @@ MSVehicle** firstBlocked) {
 				}
 				result = 0;
 			} else result = 0;
-		} else {
+		} else if (!getMessengerDeviceFromVehicle(&myVehicle)->queuedToLetIn){
             if (followerGroupLeader!=NULL){
                 if (getMessengerDeviceFromVehicle(&myVehicle)->getGroupLength()+10 < myVehicle.getPositionOnLane(myVehicle.getLane())-followerGroupLeader->getPositionOnLane(followerGroupLeader->getLane())){
-                    libsumo::Vehicle::setSpeed(myVehicle.getID(), 0.5);
+                    libsumo::Vehicle::setSpeed(myVehicle.getID(), 0);
                 } else libsumo::Vehicle::setSpeed(myVehicle.getID(), myVehicle.getEdge()->getSpeedLimit()*0.3);
             }
 			if (laneOffset == required.laneOffset && (followerGroupLeader == NULL || ((neighFollow.first == followerGroupLeader
@@ -262,15 +264,15 @@ MSVehicle** firstBlocked) {
 					if (neighFollow.first != NULL) libsumo::Vehicle::setSpeed(myVehicle.getID(), neighFollow.first->getSpeed()*0.75);
 				}*/
                 result = required.result;
-				LanechangeContent* lcc = new LanechangeContent();
+				/*LanechangeContent* lcc = new LanechangeContent();
 				lcc->result = required.result;
 				lcc->laneOffset = required.laneOffset;
 				LanechangeMessage* lcm = new LanechangeMessage(&myVehicle, NULL, lcc);
 				getMessengerDeviceFromVehicle(&myVehicle)->sendGroupcastMessage(lcm);
 				delete lcc;
-				delete lcm;
+				delete lcm;*/
 			}
-		}
+		} else result = 0;
 	}
 	return result;
 }
@@ -1126,6 +1128,15 @@ MSLCM_Smart::prepareStep() {
 
 void
 MSLCM_Smart::changed() {
+	if (leading) {
+		LanechangeContent *lcc = new LanechangeContent();
+		lcc->result = required.result;
+		lcc->laneOffset = required.laneOffset;
+		LanechangeMessage *lcm = new LanechangeMessage(&myVehicle, NULL, lcc);
+		getMessengerDeviceFromVehicle(&myVehicle)->sendLCMessage(lcm);
+		//delete lcc;
+		//delete lcm;
+	}
 	sentByLeader.laneOffset = 0;
 	sentByLeader.result = 0;
 	myOwnState = 0;

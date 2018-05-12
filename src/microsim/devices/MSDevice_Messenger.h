@@ -159,6 +159,7 @@ public:
     void generateOutput() const;
 
     void sendGroupcastMessage(Message* message);
+    void sendLCMessage(LanechangeMessage* message);
     void sendBroadcastMessage(Message* message);
 
 
@@ -212,19 +213,24 @@ public:
     void notifyMemberLC();
     ConflictClass* actualCC = NULL;
     void debugJudgeSetColor(const libsumo::TraCIColor& color);
+    bool isChanging = false, queuedToLetIn = false;
+    int changeFlag = 0;
 
 private:
     ExitMarker* exitMarker;
     GroupData groupData;
     libsumo::TraCIColor* originalColor;
     int flag;
-    SUMOVehicle* letInVechs[10];
+    SUMOVehicle* letInVechs[30];
     int nLetInVechs = 0, nChanged = 0, hasToLetIn = 0;
     Judge* actualJudge;
-    bool iCanPass = false, needToKnowIfCanPass = false, queuedToLetIn = false;
+    bool iCanPass = false, needToKnowIfCanPass = false;
     bool iMustPass = false; //if we entered the junction, we must leave it as soon as possible
     int judgeFlag = 0;
     std::string entryName, junctionName;
+    int insideState = 0, lcmState = 0;
+    LanechangeMessage* lcmMessage;
+
 
 private:
     void resetOriginalColor();

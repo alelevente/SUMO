@@ -18,7 +18,7 @@ class SUMOVehicle;
 class Message{
 public:
     Message();
-    Message(SUMOVehicle* sender, SUMOVehicle* receiver, std::string* content);
+    Message(SUMOVehicle* sender, SUMOVehicle* receiver, void* content);
     ~Message();
 
     void* getContent();
@@ -33,7 +33,7 @@ protected:
     SUMOVehicle* sender;
     SUMOVehicle* receiver;
 private:
-    std::string* content;
+    void* content;
 };
 
 

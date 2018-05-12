@@ -133,7 +133,9 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
     myCustomValue2(customValue2),
     myCustomValue3(customValue3),
     originalColor(NULL),
-    hasToLetIn(0)
+    hasToLetIn(0),
+    isChanging(false),
+    lcmMessage(NULL)
 {
     //GUIBaseVehicle baseVehicle;
     //originalColor = libsumo::VehicleType::getColor(holder.getID());
@@ -179,7 +181,28 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
 
     //libsumo::Vehicle::
 
+    ++changeFlag;
 
+    //group cohesion:
+    if (groupData.groupLeader!=NULL &&  groupData.groupLeader!=&myHolder) {
+        int myPos = 0;
+        SUMOVehicle* inFront;
+        while (&myHolder != getMessengerDeviceFromVehicle(groupData.groupLeader)->groupData.memberData[myPos]->vehicle)
+            ++myPos;
+        if (myPos == 0) inFront = groupData.groupLeader;
+        else inFront = getMessengerDeviceFromVehicle(groupData.groupLeader)->groupData.memberData[myPos-1]->vehicle;
+       // std::cout << myHolder.getID() << " and " << inFront->getID() << ": " <<
+        //                 (inFront->getEdge() == myHolder.getEdge()) <<" dist: " << (inFront->getPositionOnLane() - myHolder.getPositionOnLane()) << std::endl;
+        if ((inFront->getEdge() == myHolder.getEdge()) &&
+                (inFront->getPositionOnLane() - myHolder.getPositionOnLane() < 20) ) {
+            libsumo::Vehicle::setSpeed(myHolder.getID(), inFront->getSpeed() * 0.75);
+            //if (myHolder.getID() == "carflowe.2") std::cout << "fekez: " << inFront->getSpeed() * 0.75 << std::endl;
+        }
+        else libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
+    } else {
+        if (groupData.groupLeader == &myHolder) libsumo::Vehicle::setSpeed(myHolder.getID(), 0.75*myHolder.getEdge()->getSpeedLimit());
+        else libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
+    }
 
     if (originalColor==NULL) {
         originalColor = new libsumo::TraCIColor(libsumo::VehicleType::getColor(veh.getVehicleType().getID()));
@@ -297,6 +320,7 @@ MSDevice_Messenger::notifyEnter(SUMOVehicle& veh, MSMoveReminder::Notification r
             //delete exitMarkers;
 
             flag = STEP_FLAG;//GroupMessageHandler::Join(&veh);
+            changeFlag = 0;
             MSVehicle* me = (MSVehicle*) &veh;
             MSLCM_Smart* smartLeader = (MSLCM_Smart*) &(me->getLaneChangeModel());
             smartLeader->requestChange(-100);
@@ -314,8 +338,11 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
     if (reason != 1) return true;
 
     if (groupData.groupLeader!=NULL &&
-            compareNames(getMessengerDeviceFromVehicle(groupData.groupLeader)->junctionName,myHolder.getEdge()->getID())) {
+            compareNames(getMessengerDeviceFromVehicle(groupData.groupLeader)->junctionName,myHolder.getEdge()->getID())
+            && insideState == 0) {
+        //std::cout << veh.getID() << " must pass" << std::endl;
         iMustPass = true;
+        insideState = 1;
         actualJudge->reportCome();
     }
 
@@ -327,9 +354,11 @@ MSDevice_Messenger::notifyLeave(SUMOVehicle& veh, double /*lastPos*/, MSMoveRemi
     if (MarkerSystem::isMarkerID(veh.getEdge()->getID())) {
         result = MarkerSystem::getInstance().findMarkerByID(veh.getEdge()->getID())->onExit(&veh);
         //ExitMarker:
-        if (result!=NULL && groupData.groupLeader!=NULL){
-            if (actualJudge!=NULL) actualJudge->reportLeave();
+        if (result!=NULL && groupData.groupLeader!=NULL && insideState == 1){
+            //std::cout << myHolder.getID() << " has passed." << std::endl;
+            getMessengerDeviceFromVehicle(groupData.groupLeader)->actualJudge->reportLeave();
             GroupMessageHandler::tryToLeave(groupData.groupLeader, &veh);
+            insideState = 2;
         } else if (groupData.groupLeader == &veh) {         //Leader left the entryMarker
             groupData.canJoin = false;
             needToKnowIfCanPass = true;
@@ -403,7 +432,7 @@ void MSDevice_Messenger::sendGroupcastMessage(Message *message) {
         std::cerr << "Cannot send groupcast message, since it is not a leader." << std::endl;
         throw "Cannot send groupcast message, since it is not a leader.";
     }
-    //std::cout << "Message sent from "<< myHolder.getID() <<" to: ";
+    std::cout << "Message sent from "<< myHolder.getID() <<" to: ";
     for (int i=0; i < groupData.nMembers; ++i){
         //messenger = getMessengerDeviceFromVehicle(group.at(i));
         message->setReceiver(groupData.memberData[i]->vehicle);
@@ -475,6 +504,22 @@ inline void GroupData::clear() {
 }
 
 void MSDevice_Messenger::newGroup() {
+    isChanging = false;
+    std::cout << myHolder.getID() << " has created a new group." << std::endl;
+    //let in is in progress ahead when we arrive:
+    MSDevice_Messenger *leader = getMessengerDeviceFromVehicle((SUMOVehicle*)(((MSVehicle*)&myHolder)->getLeader(MAX_DISTANCE).first));
+    if (leader!=NULL){
+        leader = getMessengerDeviceFromVehicle(leader->groupData.groupLeader);
+        if (leader->isChanging && leader->myHolder.getLane() == myHolder.getLane() &&
+                leader->myHolder.getPositionOnLane() - leader->getGroupLength() - 20 < myHolder.getPositionOnLane()) {
+            std::cout << myHolder.getID() << " has to let in: " << leader->myHolder.getID() << std::endl;
+            MSLCM_Smart& leaderChanger = (MSLCM_Smart&)((MSVehicle*)&myHolder)->getLeader(MAX_DISTANCE).first->getLaneChangeModel();
+            leaderChanger.followerGroupLeader = static_cast<MSVehicle*>(&myHolder);
+            addLetIn(&leader->myHolder,0);
+        }
+    }
+
+    insideState = 0;
     groupData.clear();
     iCanPass = false;
     needToKnowIfCanPass = false;
@@ -516,6 +561,7 @@ void MSDevice_Messenger::setGroupMemberData(libsumo::TraCIColor color, SUMOVehic
     groupData.groupColor = color;
     groupData.groupLeader = leader;
     libsumo::Vehicle::setColor(myHolder.getID(),color);
+    insideState = 0;
 }
 
 void MSDevice_Messenger::notifyLeaved(SUMOVehicle *who) {
@@ -536,6 +582,7 @@ void MSDevice_Messenger::finishGroup() {
     actualJudge->iCrossed(&myHolder);
     needToKnowIfCanPass = false;
     iMustPass = false;
+    insideState = 0;
 
     MSDevice_Messenger* other;
     libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
@@ -546,6 +593,8 @@ void MSDevice_Messenger::finishGroup() {
         other->groupData.clear();
         other->resetOriginalColor();
         other->actualJudge = NULL;
+        other->insideState = 0;
+        other->iMustPass = false;
         libsumo::Vehicle::setSpeed(other->myHolder.getID(), -1);
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(*i)->vehicle)->getLaneChangeModel();
         smartLaneCh.requestChange(-1);
@@ -576,36 +625,42 @@ void MSDevice_Messenger::addLetIn(SUMOVehicle *who, double speed) {
         //libsumo::Vehicle::setSpeed(myHolder.getID(), speed);
         //std::cout << "Sebesség beállítva: " << speed << " m/s " << myHolder.getID() << std::endl;
     }
-    if (nLetInVechs == 10) throw OutOfBoundsException();
+    if (nLetInVechs == 30) throw OutOfBoundsException();
     letInVechs[nLetInVechs] = who;
     ++nLetInVechs;
     queuedToLetIn = true;
 }
 
 bool MSDevice_Messenger::canIGetIn(SUMOVehicle *who) {
-    //std::cout << who->getID() << " asks if can change. Answer: " << (letInVechs[hasToLetIn]==who) << std::endl;
+    std::cout << who->getID() << " asks if can change. Answer: " << (letInVechs[hasToLetIn]==who) << std::endl;
+    std::cout << "can go: " << letInVechs[hasToLetIn]->getID() << std::endl;
 
     if (nLetInVechs>0) {
         SUMOVehicle* lastCar = letInVechs[hasToLetIn];
         if (getMessengerDeviceFromVehicle(letInVechs[hasToLetIn])->groupData.nMembers > 0) {
-            lastCar = getMessengerDeviceFromVehicle(lastCar)->groupData.memberData[getMessengerDeviceFromVehicle(lastCar)->groupData.nMembers-1]->vehicle;
+            lastCar = getMessengerDeviceFromVehicle(lastCar)->groupData.memberData[
+                    getMessengerDeviceFromVehicle(lastCar)->groupData.nMembers - 1]->vehicle;
+            /* if (libsumo::Vehicle::getDrivingDistance(myHolder.getID(), lastCar->getEdge()->getID(),
+                                                      lastCar->getPositionOnLane(), 0) > 20) {
+                 libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
+                 libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(),
+                                            lastCar->getEdge()->getSpeedLimit() * 0); */
+            /*} else {
+                //libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
+                //libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), myHolder.getEdge()->getSpeedLimit() * 0.25);
+                                           //lastCar->getEdge()->getSpeedLimit() * 0.25);
+            }*/
         }
-        /*if libsumo::Vehicle::getDrivingDistance(myHolder.getID(), lastCar->getEdge()->getID(),
-                                                 lastCar->getPositionOnLane(), 0) > 20) {
-            libsumo::Vehicle::setSpeed(myHolder.getID(), myHolder.getEdge()->getSpeedLimit() * 0.5);
-            libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(),
-                                       lastCar->getEdge()->getSpeedLimit() * 0.125);
-        } else {*/
-            //libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
-            //libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), myHolder.getEdge()->getSpeedLimit() * 0.25);
-                                       //lastCar->getEdge()->getSpeedLimit() * 0.25);
-        //}
+        if (lastCar->getPositionOnLane() - myHolder.getPositionOnLane() < 2 &&
+                !getMessengerDeviceFromVehicle(letInVechs[hasToLetIn])->queuedToLetIn) libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), 4);
+        else if (lastCar->getPositionOnLane() - myHolder.getPositionOnLane() > 9) libsumo::Vehicle::setSpeed(letInVechs[hasToLetIn]->getID(), 0);
     }
-    return letInVechs[hasToLetIn]==who;
+    return (letInVechs[hasToLetIn]==who &&
+            !getMessengerDeviceFromVehicle(letInVechs[hasToLetIn])->queuedToLetIn);
 }
 
 void MSDevice_Messenger::letInMade(SUMOVehicle *who) {
-    //std::cout << who->getID() <<": was let in" << std::endl;
+    std::cout << who->getID() <<": was let in" << std::endl;
     //someone was let in:
     ++hasToLetIn;
     //when everyone was let in:
@@ -629,17 +684,37 @@ void MSDevice_Messenger::setCanJoin(bool canJoin) {
 }
 
 void MSDevice_Messenger::notifyMemberLC() {
+    sendLCMessage(lcmMessage);
     ++nChanged;
+    isChanging = true;
     if (nChanged > groupData.nMembers) {
         nChanged = 0;
         MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
         smartLaneCh.wholeGroupChanged();
+        isChanging = false;
     }
 }
 
 void MSDevice_Messenger::debugJudgeSetColor(const libsumo::TraCIColor& color) {
     for (int i=0; i<groupData.nMembers; ++i) {
         libsumo::Vehicle::setColor(groupData.memberData[i]->vehicle->getID(), color);
+    }
+}
+
+void MSDevice_Messenger::sendLCMessage(LanechangeMessage *message) {
+    if (message == NULL) return;
+    if (lcmMessage == NULL) {
+        lcmState = 0;
+        lcmMessage = message;
+    }
+    if (lcmState < groupData.nMembers) {
+        lcmMessage->setReceiver(groupData.memberData[lcmState]->vehicle);
+        lcmMessage->processMessage();
+        ++lcmState;
+    } else {
+        //delete lcmMessage->getContent();
+        delete lcmMessage;
+        lcmMessage = NULL;
     }
 }
 

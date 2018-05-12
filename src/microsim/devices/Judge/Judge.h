@@ -14,8 +14,8 @@
 #define DEFAULT_PASS_TIME 3
 #define DEFAULT_COME_IN_TIME 10
 #define DEFAULT_CC_SIZE 15
-#define DEFAULT_RECHECK_TIME 10
-#define DEADLOCK_THRESHOLD 20000
+#define DEFAULT_RECHECK_TIME 1
+#define DEADLOCK_THRESHOLD 50000
 
 struct PassRequest;
 
@@ -23,17 +23,16 @@ struct ConflictClass{
     int nMembers = 0, nPassed = 0;
     bool directions[100];
     bool canJoin = true;
-    std::vector<PassRequest*> *requests;
+    std::vector<PassRequest*> requests;
     ConflictClass();
     ConflictClass(const ConflictClass& rhs);
 };
 
 struct PassRequest{
     SUMOVehicle* groupLeader;
-    SUMOTime tRequestArrived, tNeeded, tGranted, tWillArrive;
+    SUMOTime tRequestArrived;
     int groupSize;
     std::string* directon;
-    std::vector<SUMOVehicle*> heldBy;
     ConflictClass* myConflictClass;
 };
 
@@ -42,7 +41,6 @@ struct PassRequest{
 class Judge{
 public:
 
-    int getRemaining(SUMOVehicle* groupLeader);
     void reportComing(SUMOVehicle* groupLeader, int groupSize, SUMOTime tNeeded, SUMOTime tWillArrive, const std::string& inDirection, const std::string& outDirection);
     void iCrossed(SUMOVehicle* groupLeader);
     const std::string& getName();
@@ -57,7 +55,8 @@ private:
     std::string routeName[300];
     int counter[300];
     bool conflictMatrix[300][300];
-    bool canChange = true, crossFlag = false;
+    bool canChange = true;
+    ConflictClass* changeNeededTo  = NULL;
     int mtxSize;
     int inside = 0;
     std::string name;
@@ -67,17 +66,11 @@ private:
 
 
     void initializeConflictMatrix(const std::string& path);
-    int isThereConflict(SUMOVehicle *groupLeader, const std::vector<PassRequest *> &requests);
     inline int getReqByLeader(SUMOVehicle *groupLeader, const std::vector<PassRequest *> requests);
     inline int getDirByStr(std::string *direction);
     inline double calculatePassFunction(int groupSize, int T, int requestArrived);
-    inline int searchEqualsInTime(const std::vector<PassRequest*>* pass1, const std::vector<PassRequest*>* pass2, int simuTime);
     inline double calculateSumOfPassFunctions(const std::vector<PassRequest*>* passes, int T);
-    inline bool timeConflict(SUMOTime t1, SUMOTime d1, SUMOTime t2, SUMOTime d2);
-    inline int howManyCanPass(const PassRequest* request, int deadline);
     std::vector<PassRequest*>* getRequestsByDirection(const std::vector<PassRequest*>* passRequests, const std::string* direction);
-    bool willMakeAnotherConflict(SUMOVehicle *leader1, SUMOVehicle *leader2);
-    inline void resetCounterToZero();
 
     std::vector<ConflictClass*> conflictClasses;
     int actualConflictClass = -1;

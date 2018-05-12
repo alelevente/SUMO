@@ -5,7 +5,7 @@
 #include "Message.h"
 #include <string>
 
-Message::Message(SUMOVehicle *sender, SUMOVehicle *receiver, std::string* content):
+Message::Message(SUMOVehicle *sender, SUMOVehicle *receiver, void* content):
     sender(sender),
     receiver(receiver),
     content(content)
