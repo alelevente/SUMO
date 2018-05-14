@@ -34,9 +34,9 @@
 #include <microsim/devices/Messages/GroupMessages.h>
 #include <microsim/devices/Markers/ExitMarker.h>
 #include <microsim/devices/Judge/Judge.h>
+#include <microsim/devices/teacher/Teacher.h>
 
 static const double MAX_DISTANCE=100;
-static const int MAX_GROUP_MEMBERS=15;
 static const int STEP_FLAG = 2;
 // ===========================================================================
 // class declarations
@@ -222,6 +222,7 @@ private:
     libsumo::TraCIColor* originalColor;
     int flag;
     SUMOVehicle* letInVechs[30];
+    int nQuestions[30], tLastAsked[30];
     int nLetInVechs = 0, nChanged = 0, hasToLetIn = 0;
     Judge* actualJudge;
     bool iCanPass = false, needToKnowIfCanPass = false;
@@ -245,6 +246,7 @@ private:
     MSDevice_Messenger operator=(const MSDevice_Messenger&);
 
 };
+
 
 
 #endif

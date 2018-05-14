@@ -26,7 +26,7 @@ set(microsim_devices_STAT_SRCS
         MSDevice_Messenger.cpp
         MSDevice_Messenger.h
         Judge/Judge.h Judge/Judge.cpp
-        Messages/Message.h Messages/Message.cpp Messages/helper.h Messages/helper.cpp Messages/GroupMessages.h Messages/GroupMessages.cpp Messages/GroupMessageHandler.h Markers/BaseMarker.h Markers/EntryMarker.h Markers/ExitMarker.h Markers/MarkerSystem.h Markers/MarkerSystem.cpp Messages/GroupMessageHandler.cpp Markers/EntryMarker.cpp Markers/BaseMarker.cpp Markers/ExitMarker.cpp Messages/SpeedMessages.h Messages/SpeedMessages.cpp )
+        Messages/Message.h Messages/Message.cpp Messages/helper.h Messages/helper.cpp Messages/GroupMessages.h Messages/GroupMessages.cpp Messages/GroupMessageHandler.h Markers/BaseMarker.h Markers/EntryMarker.h Markers/ExitMarker.h Markers/MarkerSystem.h Markers/MarkerSystem.cpp Messages/GroupMessageHandler.cpp Markers/EntryMarker.cpp Markers/BaseMarker.cpp Markers/ExitMarker.cpp Messages/SpeedMessages.h Messages/SpeedMessages.cpp teacher/Teacher.h teacher/Teacher.cpp)
 
 add_library(microsim_devices STATIC ${microsim_devices_STAT_SRCS})
 set_property(TARGET microsim_devices PROPERTY PROJECT_LABEL "z_microsim_devices")

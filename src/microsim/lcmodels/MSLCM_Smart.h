@@ -296,6 +296,7 @@ public:
 	MSVehicle* followerGroupLeader;
 	void setLeading(bool leading);
     void setLCAction(int laneoffset, int result);
+	void resetState();
 
 private:
 	int leadStartTime;

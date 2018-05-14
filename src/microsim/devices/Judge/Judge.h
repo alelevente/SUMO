@@ -11,7 +11,7 @@
 //#include "microsim/devices/Markers/ExitMarker.h"
 //#include "microsim/devices/Markers/EntryMarker.h"
 
-#define DEFAULT_PASS_TIME 3
+#define DEFAULT_PASS_TIME 10
 #define DEFAULT_COME_IN_TIME 10
 #define DEFAULT_CC_SIZE 15
 #define DEFAULT_RECHECK_TIME 1
@@ -53,6 +53,7 @@ public:
 private:
     std::vector<PassRequest*> conflictStore;
     std::string routeName[300];
+    int lastDeadlock = 0;
     int counter[300];
     bool conflictMatrix[300][300];
     bool canChange = true;
@@ -62,6 +63,7 @@ private:
     std::string name;
     int passTime = DEFAULT_PASS_TIME, comeInTime = DEFAULT_COME_IN_TIME;
     int state = 0;
+    int recoverFromBadInside = 0;
     libsumo::TraCIColor colors[10];
 
 

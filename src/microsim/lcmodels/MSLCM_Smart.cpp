@@ -200,11 +200,14 @@ const MSLane& neighLane,
 const std::vector<MSVehicle::LaneQ>& preb,
 MSVehicle** lastBlocked,
 MSVehicle** firstBlocked) {
+	//
+	// std::cout << myVehicle.getID() << ": " << myOwnState << std::endl;
 	//flagged
     if (getMessengerDeviceFromVehicle(&myVehicle)->changeFlag < 4) return 0;
 	if (requested==-100)
 		return 0;
 	int result = 0;
+	if (getMessengerDeviceFromVehicle(&myVehicle)->queuedToLetIn) return 0;
 	/*if (myVehicle.getID()=="carflowa.3") {
 		int j;
 		j = 0;
@@ -263,7 +266,16 @@ MSVehicle** firstBlocked) {
 				if (laneOffset == required.laneOffset && (neighFollow.first != followerGroupLeader)&&(neighLead.first != followerGroupLeader)) {
 					if (neighFollow.first != NULL) libsumo::Vehicle::setSpeed(myVehicle.getID(), neighFollow.first->getSpeed()*0.75);
 				}*/
-                result = required.result;
+
+				//antideadlocker:
+				//if (myVehicle.getID() == "carflow26.34") std::cout << "cf26.34: " << myOwnState << std::endl;
+				if (myOwnState & LCA_BLOCKED) {
+					result = 0;
+					wholeGroupChanged();
+					required.result = 0;
+					required.laneOffset = 0;
+				} else result = required.result;
+
 				/*LanechangeContent* lcc = new LanechangeContent();
 				lcc->result = required.result;
 				lcc->laneOffset = required.laneOffset;
@@ -1163,7 +1175,7 @@ MSLCM_Smart::changed() {
 	} catch (...) {}
 
     if (required.result!=0) {
-        libsumo::Vehicle::setSpeed(myVehicle.getID(), -1);
+        //libsumo::Vehicle::setSpeed(myVehicle.getID(), -1);
 
 		steps[actualStep].lane = myVehicle.getLane();
 		steps[actualStep].laneOffset = required.laneOffset;
@@ -1930,6 +1942,7 @@ MSLCM_Smart::distanceAlongNextRoundabout(double position, const MSLane* initialL
 
 int
 MSLCM_Smart::slowDownForBlocked(MSVehicle** blocked, int state) {
+	//if (leading || requested == -100) return 0;
 	//  if this vehicle is blocking someone in front, we maybe decelerate to let him in
 	if ((*blocked) != 0) {
 		double gap = (*blocked)->getPositionOnLane() - (*blocked)->getVehicleType().getLength() - myVehicle.getPositionOnLane() - myVehicle.getVehicleType().getMinGap();
@@ -2107,12 +2120,21 @@ bool MSLCM_Smart::isLeading() const {
 void MSLCM_Smart::setLeading(bool leading) {
 	MSLCM_Smart::leading = leading;
 	actualStep = 0;
+    if (followerGroupLeader != NULL) {
+        wholeGroupChanged();
+    }
 	leadStartTime = libsumo::Simulation::getCurrentTime() / 1000;
 }
 
 void MSLCM_Smart::setLCAction(int laneoffset, int result) {
 	sentByLeader.laneOffset = laneoffset;
 	sentByLeader.result = result;
+}
+
+void MSLCM_Smart::resetState(){
+    followerGroupLeader = NULL;
+    required.laneOffset = 0;
+    required.result = 0;
 }
 
 /****************************************************************************/

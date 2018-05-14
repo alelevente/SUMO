@@ -11,6 +11,7 @@ Judge::Judge(const std::string &path, const std::string &name) {
     initializeConflictMatrix(path);
     inside = 0;
     lastCheck = 0;
+    recoverFromBadInside = 0;
     this->name = name;
 
 
@@ -219,6 +220,7 @@ void resetCarsSpeed(const std::vector<PassRequest*>& passRequests){
 }
 
 void Judge::terminateCC(ConflictClass *cc) {
+    //std::cout << "terminated" << std::endl;
     canChange = true;
     auto i = conflictClasses.begin();
     while ((*i)!=cc) ++i;
@@ -277,9 +279,12 @@ void Judge::reportComing(SUMOVehicle *groupLeader, int groupSize, SUMOTime tNeed
 }
 
 void Judge::iCrossed(SUMOVehicle *groupLeader) {
-    //std::cout << groupLeader->getID() << " crossed." << std::endl;
+    //std::cout << groupLeader->getID() << " crossed at " << name << std::endl;
     int idx = getReqByLeader(groupLeader, conflictStore);
-    if (idx == -1) return;
+    if (idx == -1) {
+        //std::cerr << "Bad request." << std::endl;
+        return;
+    }
     PassRequest* req = conflictStore[idx];
     auto deller = conflictStore.begin();
     while ((*deller)!=req) ++deller;
@@ -299,7 +304,10 @@ void Judge::iCrossed(SUMOVehicle *groupLeader) {
 }
 
 bool Judge::canIPass(SUMOVehicle *groupLeader) {
-    if (libsumo::Simulation::getCurrentTime()/1000 - lastCheck > DEFAULT_RECHECK_TIME) recheck();
+   // if (libsumo::Simulation::getCurrentTime()/1000 - lastCheck > DEFAULT_RECHECK_TIME) recheck();
+    recheck();
+    if (actualConflictClass>=0 && conflictStore[getReqByLeader(groupLeader, conflictStore)]->myConflictClass == conflictClasses[actualConflictClass])
+        //std::cout << groupLeader->getID() << " has permission to pass at: " << name << std::endl;
     return (actualConflictClass>=0 && conflictStore[getReqByLeader(groupLeader, conflictStore)]->myConflictClass == conflictClasses[actualConflictClass]);
 }
 
@@ -313,19 +321,20 @@ void Judge::recheck() {
     //std::cout << name <<": ";
     for (j=0; j < conflictClasses.size(); ++j) {
         akt = calculateSumOfPassFunctions(&conflictClasses[j]->requests, T/1000);
-        //std::cout << akt <<", ";
+       // std::cout << akt <<", ";
         if (akt>max) {
             max = akt;
             maxPos = conflictClasses[j];
         }
     }
     //std::cout << std::endl;
-    if (max>DEADLOCK_THRESHOLD && actualConflictClass!=-1) {
+    if (max>DEADLOCK_THRESHOLD && actualConflictClass!=-1 && T/1000-lastDeadlock > 10) {
         antiDeadLock();
         return;
     }
 
-    if (changeNeededTo != NULL && inside==0) {
+    if (changeNeededTo != NULL && inside<=0) {
+        inside = 0;
         for (j=0; j<conflictClasses.size(); ++j) if (conflictClasses[j] == changeNeededTo) {
                 changeNeededTo = NULL;
                 actualConflictClass = j;
@@ -349,21 +358,30 @@ void Judge::recheck() {
 
         if (actualConflictClass != j) {
             changeNeededTo = maxPos;
+            //std::cout << "actual CC has changed" << std::endl;
             return;
         }
     } else {
+        //std::cout << "actual CC has changed" << std::endl;
         changeNeededTo = maxPos;
     }
 }
 
 void Judge::antiDeadLock() {
     //std::cout << "antideadlock" << std::endl;
-    if (inside!=0) return;
+    if (inside!=0 && recoverFromBadInside<50*passTime) {
+      //  std::cerr << "There are cars in." << std::endl;
+        ++recoverFromBadInside;
+        return;
+    }
+    recoverFromBadInside = 0;
+    inside = 0;
+    lastDeadlock = libsumo::Simulation::getCurrentTime() / 1000;
 
     ConflictClass* cc = new ConflictClass(*conflictClasses[actualConflictClass]);
     ConflictClass* deletendo = conflictClasses[actualConflictClass];
 
-    for (auto i = deletendo->requests.begin(); i != deletendo->requests.end(); ++i) {
+    for (auto i = cc->requests.begin(); i != cc->requests.end(); ++i) {
         (*i)->tRequestArrived = libsumo::Simulation::getCurrentTime()/1000;
         (*i)->myConflictClass = cc;
         //cc->requests.push_back((*i));
@@ -372,15 +390,24 @@ void Judge::antiDeadLock() {
 
     if (changeNeededTo == deletendo) changeNeededTo = NULL;
 
-    for (auto i = conflictClasses.begin(); i!=conflictClasses.end(); ++i)
-        if ((*i) == deletendo) {
+    /*int k = 0;
+    for (auto i = conflictClasses.begin(); i!=conflictClasses.end(); ++i) {
+        if ((*i) == deletendo || k == actualConflictClass) {
+            std::cout << "erased" << std::endl;
             conflictClasses.erase(i);
             break;
         }
-    delete deletendo;
+        ++k;
+    }*/
+    terminateCC(deletendo);
+    //std::cout << "anti deadlock end." << std::endl;
+    //delete deletendo;
 
     conflictClasses.push_back(cc);
     actualConflictClass = -1;
+    /*for (auto i = conflictClasses.begin(); i != conflictClasses.end(); ++i) {
+        resetCarsSpeed((*i)->requests);
+    }*/
 }
 
 void Judge::reportCome() {

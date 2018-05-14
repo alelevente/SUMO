@@ -86,6 +86,7 @@ public:
     template <class NamedLike>
     struct NamedLikeComparatorIdLess {
         bool operator()(const NamedLike* const a, const NamedLike* const b) const {
+            if (a == NULL || b == NULL) return false;
             return a->getID() < b->getID();
         }
     };
