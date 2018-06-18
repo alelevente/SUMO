@@ -215,6 +215,7 @@ public:
     void debugJudgeSetColor(const libsumo::TraCIColor& color);
     bool isChanging = false, queuedToLetIn = false;
     int changeFlag = 0;
+    bool iCanPass = false, iMustPass = false; //if we entered the junction, we must leave it as soon as possible
 
 private:
     ExitMarker* exitMarker;
@@ -225,8 +226,8 @@ private:
     int nQuestions[30], tLastAsked[30];
     int nLetInVechs = 0, nChanged = 0, hasToLetIn = 0;
     Judge* actualJudge;
-    bool iCanPass = false, needToKnowIfCanPass = false;
-    bool iMustPass = false; //if we entered the junction, we must leave it as soon as possible
+    bool needToKnowIfCanPass = false;
+
     int judgeFlag = 0;
     std::string entryName, junctionName;
     int insideState = 0, lcmState = 0;

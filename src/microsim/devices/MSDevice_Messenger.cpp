@@ -145,7 +145,10 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
     groupData.groupLeader = NULL;
     flag = 0;
     Teacher::getInstance().newCar();
-    for (int i = 0; i<30 ; ++i) tLastAsked[i] = 100000;
+    for (int i = 0; i<30 ; ++i) {
+        tLastAsked[i] = 100000;
+        letInVechs[i] = NULL;
+    }
     //std::cout << "initialized device '" << id << "' with myCustomValue1=" << myCustomValue1 << ", myCustomValue2=" << myCustomValue2 << ", myCustomValue3=" << myCustomValue3 << "\n";
     //setIsLeader(true);
 }
@@ -154,6 +157,12 @@ MSDevice_Messenger::MSDevice_Messenger(SUMOVehicle& holder, const std::string& i
 MSDevice_Messenger::~MSDevice_Messenger() {
     Teacher::getInstance().oldCar();
     //if (queuedToLetIn) throw "HIBBA";
+    for (int i = 0; i < 30; ++i) {
+        if (letInVechs[i]!=NULL) {
+            MSLCM_Smart &smartLaneCh = (MSLCM_Smart &) ((MSVehicle *) letInVechs[i])->getLaneChangeModel();
+            smartLaneCh.resetState();
+        }
+    }
 }
 
 
@@ -195,7 +204,21 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
     if (deadlockIdx<nLetInVechs) {
         if (tLastAsked[deadlockIdx] < libsumo::Simulation::getCurrentTime() / 1000 - 50) {
             letInMade(letInVechs[deadlockIdx]);
+            if (letInVechs[deadlockIdx]!=NULL) {
+                MSLCM_Smart &smartLaneCh = (MSLCM_Smart &) ((MSVehicle *) letInVechs[deadlockIdx])->getLaneChangeModel();
+                smartLaneCh.resetState();
+                libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
+            }
             letInVechs[deadlockIdx] = NULL;
+        }
+    }
+
+    /*MSLCM_Smart& smartLaneCh = (MSLCM_Smart&)((MSVehicle*)(&myHolder))->getLaneChangeModel();
+    if (groupData.groupLeader == &myHolder && !smartLaneCh.isLeading()) smartLaneCh.setLeading(true);*/
+
+    if (groupData.groupLeader == &myHolder) {
+        for (int idx = 0; idx < groupData.nMembers; ++idx){
+            getMessengerDeviceFromVehicle(groupData.memberData[idx]->vehicle)->iMustPass = true;
         }
     }
 
@@ -251,6 +274,7 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
 #endif
     if (iMustPass) {
         libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
+        //return true;
     }
     if (flag==1){
         GroupMessageHandler::Join(&veh);
@@ -291,7 +315,7 @@ MSDevice_Messenger::notifyMove(SUMOVehicle& veh, double /* oldPos */,
             if (!iCanPass && myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 20 && !iMustPass) {
                 //std::cout << myHolder.getID() <<": speed changed (cause: cant pass)" << std::endl;
                 libsumo::Vehicle::setSpeed(myHolder.getID(), 2.5);
-                if (myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 2.5) {
+                if (myHolder.getLane()->getLength() - myHolder.getPositionOnLane() < 7) {
                     libsumo::Vehicle::setSpeed(myHolder.getID(), 0);
                 }
             }
@@ -688,6 +712,7 @@ bool MSDevice_Messenger::canIGetIn(SUMOVehicle *who) {
         letInVechs[idx] = NULL;
         smartLaneCh.resetState();
         getMessengerDeviceFromVehicle(who)->changeFlag = -100;
+        libsumo::Vehicle::setSpeed(myHolder.getID(), -1);
         //std::cerr << "let in deadlock solved." << std::endl;
         return false;
     } else std::cerr << "deadlock, time: " << nQuestions[idx] << std::endl;

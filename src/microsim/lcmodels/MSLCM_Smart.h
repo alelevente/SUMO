@@ -290,6 +290,7 @@ private:
 	int nChanged = 0;
     Step required;
     Step sentByLeader;
+	std::string name;
 
 public:
 	bool isLeading() const;

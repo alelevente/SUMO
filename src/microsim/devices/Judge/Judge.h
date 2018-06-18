@@ -11,11 +11,11 @@
 //#include "microsim/devices/Markers/ExitMarker.h"
 //#include "microsim/devices/Markers/EntryMarker.h"
 
-#define DEFAULT_PASS_TIME 10
+#define DEFAULT_PASS_TIME 25
 #define DEFAULT_COME_IN_TIME 10
 #define DEFAULT_CC_SIZE 15
-#define DEFAULT_RECHECK_TIME 1
-#define DEADLOCK_THRESHOLD 50000
+#define DEFAULT_RECHECK_TIME 0
+#define DEADLOCK_THRESHOLD 150000
 
 struct PassRequest;
 

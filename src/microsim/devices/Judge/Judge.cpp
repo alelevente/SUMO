@@ -304,30 +304,33 @@ void Judge::iCrossed(SUMOVehicle *groupLeader) {
 }
 
 bool Judge::canIPass(SUMOVehicle *groupLeader) {
-   // if (libsumo::Simulation::getCurrentTime()/1000 - lastCheck > DEFAULT_RECHECK_TIME) recheck();
-    recheck();
+   // std::cout << libsumo::Simulation::getCurrentTime()/1000 - lastCheck << std::endl;
+    if (libsumo::Simulation::getCurrentTime()/1000 - lastCheck > DEFAULT_RECHECK_TIME) recheck();
+
+    //recheck();
     if (actualConflictClass>=0 && conflictStore[getReqByLeader(groupLeader, conflictStore)]->myConflictClass == conflictClasses[actualConflictClass])
         //std::cout << groupLeader->getID() << " has permission to pass at: " << name << std::endl;
     return (actualConflictClass>=0 && conflictStore[getReqByLeader(groupLeader, conflictStore)]->myConflictClass == conflictClasses[actualConflictClass]);
 }
 
 void Judge::recheck() {
+    //if (name == "JagHegy" && inside != 0) return;
     lastCheck = libsumo::Simulation::getCurrentTime()/1000;
     ConflictClass* maxPos;
     double max = 0, akt;
     int j;
     int T = libsumo::Simulation::getCurrentTime();
 
-    //std::cout << name <<": ";
+    std::cout << name <<": ";
     for (j=0; j < conflictClasses.size(); ++j) {
         akt = calculateSumOfPassFunctions(&conflictClasses[j]->requests, T/1000);
-       // std::cout << akt <<", ";
+        std::cout << akt <<", ";
         if (akt>max) {
             max = akt;
             maxPos = conflictClasses[j];
         }
     }
-    //std::cout << std::endl;
+    std::cout << std::endl;
     if (max>DEADLOCK_THRESHOLD && actualConflictClass!=-1 && T/1000-lastDeadlock > 10) {
         antiDeadLock();
         return;
@@ -338,8 +341,10 @@ void Judge::recheck() {
         for (j=0; j<conflictClasses.size(); ++j) if (conflictClasses[j] == changeNeededTo) {
                 changeNeededTo = NULL;
                 actualConflictClass = j;
+                std::cout << "actual CC has changed:" << actualConflictClass << std::endl;
+                lastCheck += 15;
                 for (auto ptr=conflictClasses.begin(); ptr!=conflictClasses.end(); ++ptr) {
-                    resetCarsSpeed((*ptr)->requests);
+                    //resetCarsSpeed((*ptr)->requests);
                 }
                 return;
             }
@@ -358,19 +363,19 @@ void Judge::recheck() {
 
         if (actualConflictClass != j) {
             changeNeededTo = maxPos;
-            //std::cout << "actual CC has changed" << std::endl;
+            //std::cout << "actual CC has changed:" << actualConflictClass << std::endl;
             return;
         }
     } else {
-        //std::cout << "actual CC has changed" << std::endl;
+        //std::cout << "actual CC has changed: " << actualConflictClass << std::endl;
         changeNeededTo = maxPos;
     }
 }
 
 void Judge::antiDeadLock() {
     //std::cout << "antideadlock" << std::endl;
-    if (inside!=0 && recoverFromBadInside<50*passTime) {
-      //  std::cerr << "There are cars in." << std::endl;
+    if (inside!=0 && recoverFromBadInside<passTime*inside) {
+        //std::cerr << "There are cars in: " << inside << std::endl;
         ++recoverFromBadInside;
         return;
     }
@@ -378,14 +383,50 @@ void Judge::antiDeadLock() {
     inside = 0;
     lastDeadlock = libsumo::Simulation::getCurrentTime() / 1000;
 
+    if (conflictClasses.size() <= actualConflictClass) {
+        actualConflictClass = -1;
+        return;
+    }
+
     ConflictClass* cc = new ConflictClass(*conflictClasses[actualConflictClass]);
     ConflictClass* deletendo = conflictClasses[actualConflictClass];
 
+    terminateCC(deletendo);
+
     for (auto i = cc->requests.begin(); i != cc->requests.end(); ++i) {
         (*i)->tRequestArrived = libsumo::Simulation::getCurrentTime()/1000;
-        (*i)->myConflictClass = cc;
+        /*(*i)->myConflictClass = cc;
         //cc->requests.push_back((*i));
-        getMessengerDeviceFromVehicle((*i)->groupLeader)->actualCC = cc;
+        getMessengerDeviceFromVehicle((*i)->groupLeader)->actualCC = cc;*/
+        int conflictClass = getOptimalConflictClass(*(*i));
+        if (conflictClass == -1 || conflictClasses[conflictClass]->canJoin == false){
+            ConflictClass* newCC = new ConflictClass();
+            newCC->requests.push_back(*i);
+            newCC->directions[getDirByStr((*i)->directon)] = true;
+            newCC->nMembers = 1;
+            newCC->canJoin = true;
+            newCC->nPassed = 0;
+            conflictClasses.push_back(newCC);
+
+            libsumo::Vehicle::setColor((*i)->groupLeader->getID(), colors[conflictClasses.size()-1]);
+            if (getMessengerDeviceFromVehicle((*i)->groupLeader)->iCanPass)
+                getMessengerDeviceFromVehicle((*i)->groupLeader)->iMustPass = true;
+            getMessengerDeviceFromVehicle((*i)->groupLeader)->debugJudgeSetColor(colors[conflictClasses.size()-1]);
+            getMessengerDeviceFromVehicle((*i)->groupLeader)->actualCC = newCC;
+
+            (*i)->myConflictClass = newCC;
+        } else {
+            ConflictClass* cc = conflictClasses[conflictClass];
+            cc->nMembers += 1;
+            if (cc->nMembers > DEFAULT_CC_SIZE) cc->canJoin = false;
+            cc->directions[getDirByStr((*i)->directon)] = true;
+            cc->requests.push_back((*i));
+            (*i)->myConflictClass = cc;
+
+            getMessengerDeviceFromVehicle((*i)->groupLeader)->actualCC = cc;
+            libsumo::Vehicle::setColor((*i)->groupLeader->getID(), colors[conflictClass]);
+            getMessengerDeviceFromVehicle((*i)->groupLeader)->debugJudgeSetColor(colors[conflictClass]);
+        }
     }
 
     if (changeNeededTo == deletendo) changeNeededTo = NULL;
@@ -399,11 +440,11 @@ void Judge::antiDeadLock() {
         }
         ++k;
     }*/
-    terminateCC(deletendo);
+
     //std::cout << "anti deadlock end." << std::endl;
     //delete deletendo;
 
-    conflictClasses.push_back(cc);
+    //conflictClasses.push_back(cc);
     actualConflictClass = -1;
     /*for (auto i = conflictClasses.begin(); i != conflictClasses.end(); ++i) {
         resetCarsSpeed((*i)->requests);
